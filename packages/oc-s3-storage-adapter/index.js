@@ -8,9 +8,9 @@ const fs = require('fs-extra');
 const nodeDir = require('node-dir');
 const _ = require('lodash');
 
-const getFileInfo = require('../utils/get-file-info');
-const getNextYear = require('../utils/get-next-year');
-const strings = require('../resources/strings');
+const getFileInfo = require('oc-storage-adapters-utils/get-file-info');
+const getNextYear = require('oc-storage-adapters-utils/get-next-year');
+const strings = require('oc-storage-adapters-utils/strings');
 
 module.exports = function(conf) {
   const isValid = () => {

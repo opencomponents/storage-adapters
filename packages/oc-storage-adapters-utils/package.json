@@ -1,8 +1,7 @@
 {
-  "name": "oc-s3-storage-adapter",
-  "version": "1.0.3",
-  "description": "S3 storage adapter for OC",
-  "main": "s3.js",
+  "name": "oc-storage-adapters-utils",
+  "version": "1.0.0",
+  "description": "Common storage adapter utils for OC",
   "repository": {
     "type": "git",
     "url": "https://github.com/opencomponents/storage-adapters.git"
@@ -14,20 +13,11 @@
   "keywords": [
     "oc",
     "opencomponents",
-    "s3"
+    "utils"
   ],
   "author": {
     "name": "Nick Balestra",
     "email": "nick@balestra.ch"
   },
-  "license": "MIT",
-  "dependencies": {
-    "async": "^2.5.0",
-    "aws-sdk": "^2.137.0",
-    "fs-extra": "^4.0.2",
-    "lodash": "^4.17.4",
-    "nice-cache": "^0.0.5",
-    "node-dir": "^0.1.17",
-    "stringformat": "^0.0.5"
-  }
+  "license": "MIT"
 }

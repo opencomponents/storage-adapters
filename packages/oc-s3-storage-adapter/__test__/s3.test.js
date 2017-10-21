@@ -1,4 +1,4 @@
-const s3 = require('../s3');
+const s3 = require('../');
 
 const options = {
   bucket: 'test',
