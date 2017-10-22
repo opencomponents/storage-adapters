@@ -8,9 +8,11 @@ const fs = require('fs-extra');
 const nodeDir = require('node-dir');
 const _ = require('lodash');
 
-const getFileInfo = require('oc-storage-adapters-utils/get-file-info');
-const getNextYear = require('oc-storage-adapters-utils/get-next-year');
-const strings = require('oc-storage-adapters-utils/strings');
+const {
+  getFileInfo,
+  getNextYear,
+  strings
+} = require('oc-storage-adapters-utils');
 
 module.exports = function(conf) {
   const isValid = () => {
@@ -169,7 +171,6 @@ module.exports = function(conf) {
       );
     });
   };
-
   const putFileContent = (fileContent, fileName, isPrivate, callback) => {
     const fileInfo = getFileInfo(fileName),
       obj = {
