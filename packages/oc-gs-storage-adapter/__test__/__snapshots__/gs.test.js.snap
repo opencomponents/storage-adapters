@@ -1,0 +1,18 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`should expose the correct methods 1`] = `
+Object {
+  "adapterType": "gs",
+  "getFile": [Function],
+  "getJson": [Function],
+  "getUrl": [Function],
+  "isValid": [Function],
+  "listSubDirectories": [Function],
+  "maxConcurrentRequests": 20,
+  "putDir": [Function],
+  "putFile": [Function],
+  "putFileContent": [Function],
+}
+`;
+
+exports[`test getUrl  1`] = `"/test/1.0.0/test.js"`;

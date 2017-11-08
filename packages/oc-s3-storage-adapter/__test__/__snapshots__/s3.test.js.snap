@@ -1,0 +1,119 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`should expose the correct methods 1`] = `
+Object {
+  "adapterType": "s3",
+  "getFile": [Function],
+  "getJson": [Function],
+  "getUrl": [Function],
+  "isValid": [Function],
+  "listSubDirectories": [Function],
+  "maxConcurrentRequests": 20,
+  "putDir": [Function],
+  "putFile": [Function],
+  "putFileContent": [Function],
+}
+`;
+
+exports[`test getFile  1`] = `"{\\"data\\": \\"words\\"}"`;
+
+exports[`test getJSon  1`] = `
+Object {
+  "data": "words",
+}
+`;
+
+exports[`test getUrl  1`] = `"/test/1.0.0/test.js"`;
+
+exports[`test listObjects  1`] = `
+Array [
+  "Prefix",
+  "Prefix2",
+]
+`;
+
+exports[`test private putFileContent  1`] = `
+Object {
+  "ACL": "authenticated-read",
+  "Body": "words",
+  "Bucket": "my-bucket",
+  "ContentType": "application/javascript",
+  "Expires": 2018-01-01T00:00:00.000Z,
+  "Key": "filename.js",
+  "ServerSideEncryption": "AES256",
+}
+`;
+
+exports[`test private putFileContent  2`] = `undefined`;
+
+exports[`test public putFileContent  1`] = `
+Object {
+  "ACL": "public-read",
+  "Body": "words",
+  "Bucket": "my-bucket",
+  "ContentEncoding": "gzip",
+  "Expires": 2019-01-01T00:00:00.000Z,
+  "Key": "filename.gz",
+  "ServerSideEncryption": "AES256",
+}
+`;
+
+exports[`test public putFileContent  2`] = `undefined`;
+
+exports[`test putFile  1`] = `
+Object {
+  "ACL": "public-read",
+  "Body": ReadStream {
+    "_events": Object {
+      "end": [Function],
+    },
+    "_eventsCount": 1,
+    "_maxListeners": undefined,
+    "_readableState": ReadableState {
+      "awaitDrain": 0,
+      "buffer": BufferList {
+        "head": null,
+        "length": 0,
+        "tail": null,
+      },
+      "decoder": null,
+      "defaultEncoding": "utf8",
+      "destroyed": false,
+      "emittedReadable": false,
+      "encoding": null,
+      "endEmitted": false,
+      "ended": false,
+      "flowing": null,
+      "highWaterMark": 65536,
+      "length": 0,
+      "needReadable": false,
+      "objectMode": false,
+      "pipes": null,
+      "pipesCount": 0,
+      "readableListening": false,
+      "reading": false,
+      "readingMore": false,
+      "resumeScheduled": false,
+      "sync": true,
+    },
+    "autoClose": true,
+    "bytesRead": 0,
+    "domain": null,
+    "end": undefined,
+    "fd": null,
+    "flags": "r",
+    "mode": 438,
+    "path": "package.json",
+    "pos": undefined,
+    "readable": true,
+    "start": undefined,
+  },
+  "Bucket": "my-bucket",
+  "ContentType": "application/javascript",
+  "Expires": 2020-01-01T00:00:00.000Z,
+  "Key": "filename.js",
+  "ServerSideEncryption": "AES256",
+}
+`;
+
+exports[`test putFile  2`] = `undefined`;
