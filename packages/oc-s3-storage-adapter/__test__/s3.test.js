@@ -172,5 +172,5 @@ test('test putFile ', () => {
   };
 
   AWS.S3.prototype.upload = data => ({ send: fn => fn(cb(data)) });
-  client.putFile('../samepleFile.js', 'filename.js', false, cb);
+  client.putFile('package.json', 'filename.js', false, cb);
 });

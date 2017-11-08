@@ -1,7 +1,7 @@
 {
-  "name": "oc-gs-storage-adapter",
+  "name": "oc-s3-storage-adapter",
   "version": "1.0.0",
-  "description": "Google storage adapter for OC",
+  "description": "S3 storage adapter for OC",
   "main": "index.js",
   "repository": {
     "type": "git",
@@ -14,8 +14,7 @@
   "keywords": [
     "oc",
     "opencomponents",
-    "goolge storage",
-    "gs"
+    "s3"
   ],
   "author": {
     "name": "Ken Crawford",
@@ -25,8 +24,8 @@
   "dependencies": {
     "oc-storage-adapters-utils": "^1.0.0",
     "async": "^2.5.0",
-    "aws-sdk": "^2.137.0",
     "fs-extra": "^4.0.2",
+    "@google-cloud/storage": "^1.3.1",
     "lodash": "^4.17.4",
     "nice-cache": "^0.0.5",
     "node-dir": "^0.1.17",

@@ -103,7 +103,7 @@ Object {
     "fd": null,
     "flags": "r",
     "mode": 438,
-    "path": "../samepleFile.js",
+    "path": "package.json",
     "pos": undefined,
     "readable": true,
     "start": undefined,
