@@ -1,6 +1,6 @@
 {
   "name": "oc-storage-adapters-utils",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Common storage adapter utils for OC",
   "repository": {
     "type": "git",
