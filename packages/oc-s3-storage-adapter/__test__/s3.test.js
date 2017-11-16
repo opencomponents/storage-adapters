@@ -168,6 +168,7 @@ test('test public putFileContent ', () => {
 test('test putFile ', () => {
   const client = new s3({ bucket: 'my-bucket' });
   const cb = data => {
+    delete data.Body;
     expect(data).toMatchSnapshot();
   };
 

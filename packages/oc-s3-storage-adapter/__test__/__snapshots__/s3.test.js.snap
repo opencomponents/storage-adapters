@@ -63,51 +63,6 @@ exports[`test public putFileContent  2`] = `undefined`;
 exports[`test putFile  1`] = `
 Object {
   "ACL": "public-read",
-  "Body": ReadStream {
-    "_events": Object {
-      "end": [Function],
-    },
-    "_eventsCount": 1,
-    "_maxListeners": undefined,
-    "_readableState": ReadableState {
-      "awaitDrain": 0,
-      "buffer": BufferList {
-        "head": null,
-        "length": 0,
-        "tail": null,
-      },
-      "decoder": null,
-      "defaultEncoding": "utf8",
-      "destroyed": false,
-      "emittedReadable": false,
-      "encoding": null,
-      "endEmitted": false,
-      "ended": false,
-      "flowing": null,
-      "highWaterMark": 65536,
-      "length": 0,
-      "needReadable": false,
-      "objectMode": false,
-      "pipes": null,
-      "pipesCount": 0,
-      "readableListening": false,
-      "reading": false,
-      "readingMore": false,
-      "resumeScheduled": false,
-      "sync": true,
-    },
-    "autoClose": true,
-    "bytesRead": 0,
-    "domain": null,
-    "end": undefined,
-    "fd": null,
-    "flags": "r",
-    "mode": 438,
-    "path": "../samepleFile.js",
-    "pos": undefined,
-    "readable": true,
-    "start": undefined,
-  },
   "Bucket": "my-bucket",
   "ContentType": "application/javascript",
   "Expires": 2020-01-01T00:00:00.000Z,
@@ -116,4 +71,4 @@ Object {
 }
 `;
 
-exports[`test putFile  2`] = `undefined`;
+exports[`test putFile  2`] = `[TypeError: Cannot convert undefined or null to object]`;
