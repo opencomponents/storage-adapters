@@ -1,0 +1,23 @@
+{
+  "name": "oc-storage-adapters-utils",
+  "version": "1.0.0",
+  "description": "Common storage adapter utils for OC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/opencomponents/storage-adapters.git"
+  },
+  "bugs": {
+    "url": "https://github.com/opencomponents/storage-adapters/issues"
+  },
+  "homepage": "https://github.com/opencomponents/storage-adapters#readme",
+  "keywords": [
+    "oc",
+    "opencomponents",
+    "utils"
+  ],
+  "author": {
+    "name": "Ken Crawford",
+    "email": "kmcrawford@gmail.com"
+  },
+  "license": "MIT"
+}
