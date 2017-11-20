@@ -15,60 +15,19 @@ Object {
 }
 `;
 
-exports[`test getFile  1`] = `"{\\"data\\": \\"words\\"}"`;
+exports[`test getFile  1`] = `"Hello!"`;
 
 exports[`test getJSon  1`] = `
 Object {
-  "data": "words",
+  "data": "Hello!",
 }
 `;
 
 exports[`test getUrl  1`] = `"/test/1.0.0/test.js"`;
 
-exports[`test listObjects  1`] = `
+exports[`test listObjects when bucket is not empty 1`] = `
 Array [
-  "Prefix",
-  "Prefix2",
+  "image/1.0.0",
+  "image/1.0.1",
 ]
 `;
-
-exports[`test private putFileContent  1`] = `
-Object {
-  "ACL": "authenticated-read",
-  "Body": "words",
-  "Bucket": "my-bucket",
-  "ContentType": "application/javascript",
-  "Expires": 2018-01-01T00:00:00.000Z,
-  "Key": "filename.js",
-  "ServerSideEncryption": "AES256",
-}
-`;
-
-exports[`test private putFileContent  2`] = `undefined`;
-
-exports[`test public putFileContent  1`] = `
-Object {
-  "ACL": "public-read",
-  "Body": "words",
-  "Bucket": "my-bucket",
-  "ContentEncoding": "gzip",
-  "Expires": 2019-01-01T00:00:00.000Z,
-  "Key": "filename.gz",
-  "ServerSideEncryption": "AES256",
-}
-`;
-
-exports[`test public putFileContent  2`] = `undefined`;
-
-exports[`test putFile  1`] = `
-Object {
-  "ACL": "public-read",
-  "Bucket": "my-bucket",
-  "ContentType": "application/javascript",
-  "Expires": 2020-01-01T00:00:00.000Z,
-  "Key": "filename.js",
-  "ServerSideEncryption": "AES256",
-}
-`;
-
-exports[`test putFile  2`] = `[TypeError: Cannot convert undefined or null to object]`;
