@@ -1,6 +1,13 @@
 const awsSdk = jest.genMockFromModule('aws-sdk');
 const _config = { update: jest.fn() };
 
+jest.mock('fs-extra', () => {
+  return {
+    createReadStream: jest.fn(() => 'this is a stream'),
+    readFile: jest.fn(cb => cb(null, 'file content!'))
+  };
+});
+
 const _S3 = class {
   constructor() {
     this.getObject = jest.fn((val, cb) => {
