@@ -82,6 +82,7 @@ test('validate missing key/secret conf', () => {
   { src: 'path/test.txt' },
   { src: 'path/test.json', json: true },
   { src: 'path/not-found.txt' },
+  { src: 'path/not-found.json', json: true },
   { src: 'path/not-a-json.json', json: true }
 ].forEach(scenario => {
   test(`test getFile ${scenario.src}`, done => {
@@ -105,7 +106,55 @@ test('validate missing key/secret conf', () => {
   });
 });
 
-['components/', 'components/image', 'components/image/'].forEach(scenario => {
+test('test getFile force mode', done => {
+  const options = {
+    bucket: 'test',
+    region: 'region-test',
+    key: 'test-key',
+    secret: 'test-secret'
+  };
+
+  const client = new s3(options);
+
+  client.getFile('path/to-mutable.txt', false, (err1, data1) => {
+    client.getFile('path/to-mutable.txt', (err2, data2) => {
+      client.getFile('path/to-mutable.txt', true, (err3, data3) => {
+        expect(err1).toBeNull;
+        expect(err2).toBeNull;
+        expect(err3).toBeNull;
+        expect(data1).toBe(data2);
+        expect(data3).not.toBe(data1);
+        done();
+      });
+    });
+  });
+});
+
+test('test getJson force mode', done => {
+  const options = {
+    bucket: 'test',
+    region: 'region-test',
+    key: 'test-key',
+    secret: 'test-secret'
+  };
+
+  const client = new s3(options);
+
+  client.getJson('path/to-mutable.json', false, (err1, data1) => {
+    client.getJson('path/to-mutable.json', (err2, data2) => {
+      client.getJson('path/to-mutable.json', true, (err3, data3) => {
+        expect(err1).toBeNull;
+        expect(err2).toBeNull;
+        expect(err3).toBeNull;
+        expect(data1.value).toBe(data2.value);
+        expect(data3.value).not.toBe(data1.value);
+        done();
+      });
+    });
+  });
+});
+
+[('components/', 'components/image', 'components/image/')].forEach(scenario => {
   test(`test listObjects when bucket is not empty for folder ${
     scenario
   }`, done => {

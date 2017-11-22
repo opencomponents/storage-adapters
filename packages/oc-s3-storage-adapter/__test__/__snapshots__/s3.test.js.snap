@@ -24,6 +24,15 @@ Object {
 
 exports[`test getFile path/not-a-json.json 2`] = `undefined`;
 
+exports[`test getFile path/not-found.json 1`] = `
+Object {
+  "code": "file_not_found",
+  "msg": "File \\"path/not-found.json\\" not found",
+}
+`;
+
+exports[`test getFile path/not-found.json 2`] = `undefined`;
+
 exports[`test getFile path/not-found.txt 1`] = `
 Object {
   "code": "file_not_found",
@@ -46,20 +55,6 @@ exports[`test getFile path/test.txt 1`] = `null`;
 exports[`test getFile path/test.txt 2`] = `"Hello!"`;
 
 exports[`test getUrl  1`] = `"/test/1.0.0/test.js"`;
-
-exports[`test listObjects when bucket is not empty for folder components/ 1`] = `
-Array [
-  "image/1.0.0",
-  "image/1.0.1",
-]
-`;
-
-exports[`test listObjects when bucket is not empty for folder components/image 1`] = `
-Array [
-  "1.0.0",
-  "1.0.1",
-]
-`;
 
 exports[`test listObjects when bucket is not empty for folder components/image/ 1`] = `
 Array [

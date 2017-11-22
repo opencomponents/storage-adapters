@@ -23,14 +23,23 @@ jest.mock('node-dir', () => {
   };
 });
 
+let cachedTxt = 0;
+let cachedJson = 0;
 const _S3 = class {
   constructor() {
     this.getObject = jest.fn((val, cb) => {
+      cachedTxt++;
+      cachedJson++;
       const contents = {
         'path/test.txt': { content: 'Hello!' },
         'path/test.json': { content: JSON.stringify({ data: 'Hello!' }) },
         'path/not-found.txt': { error: { code: 'NoSuchKey' } },
-        'path/not-a-json.json': { content: 'Not a json' }
+        'path/not-found.json': { error: { code: 'NoSuchKey' } },
+        'path/not-a-json.json': { content: 'Not a json' },
+        'path/to-mutable.json': {
+          content: JSON.stringify({ value: cachedJson })
+        },
+        'path/to-mutable.txt': { content: cachedTxt }
       };
 
       const testResult = contents[val.Key];
