@@ -149,14 +149,14 @@ test('test put dir (failure)', done => {
   );
 });
 
-test('test put dir (stream failure)', done => {
+test('test put dir (stream failure throwing)', done => {
   const client = new s3({ bucket: 'my-bucket' });
 
   client.putDir(
     '/absolute-path-to-dir',
     'components\\componentName-error-throw\\1.0.0',
     (err, res) => {
-      expect(err).toMatchSnapshot();
+      expect(err.toString()).toContain('sorry');
       done();
     }
   );
