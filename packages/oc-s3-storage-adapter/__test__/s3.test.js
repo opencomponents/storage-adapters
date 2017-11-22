@@ -136,6 +136,32 @@ test('test getUrl ', () => {
   expect(client.getUrl('test', '1.0.0', 'test.js')).toMatchSnapshot();
 });
 
+test('test put dir (failure)', done => {
+  const client = new s3({ bucket: 'my-bucket' });
+
+  client.putDir(
+    '/absolute-path-to-dir',
+    'components\\componentName-error\\1.0.0',
+    (err, res) => {
+      expect(err).toMatchSnapshot();
+      done();
+    }
+  );
+});
+
+test('test put dir (stream failure)', done => {
+  const client = new s3({ bucket: 'my-bucket' });
+
+  client.putDir(
+    '/absolute-path-to-dir',
+    'components\\componentName-error-throw\\1.0.0',
+    (err, res) => {
+      expect(err).toMatchSnapshot();
+      done();
+    }
+  );
+});
+
 test('test private putFileContent ', () => {
   const client = new s3({ bucket: 'my-bucket' });
 

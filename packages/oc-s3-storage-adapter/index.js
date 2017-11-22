@@ -190,6 +190,7 @@ module.exports = function(conf) {
     if (fileInfo.gzip) {
       obj.ContentEncoding = 'gzip';
     }
+
     const upload = getClient().upload(obj);
     upload.send(callback);
   };

@@ -67,3 +67,17 @@ Array [
   "1.0.1",
 ]
 `;
+
+exports[`test put dir (failure) 1`] = `
+Object {
+  "code": 1234,
+  "hostname": "hostname",
+  "message": "an error message",
+  "region": "us-west2",
+  "retryable": true,
+  "statusCode": 500,
+  "time": 2018-01-01T00:00:00.000Z,
+}
+`;
+
+exports[`test put dir (stream failure) 1`] = `[Error: sorry]`;

@@ -3,7 +3,7 @@ const _config = { update: jest.fn() };
 
 jest.mock('fs-extra', () => {
   return {
-    createReadStream: jest.fn(data => 'this is a stream'),
+    createReadStream: jest.fn(() => 'this is a stream'),
     readFile: jest.fn(cb => cb(null, 'file content!'))
   };
 });
@@ -57,7 +57,11 @@ const _S3 = class {
       return {
         send: jest.fn(cb => {
           let error;
-          if (data && data.key && data.key.indexOf('error') >= 0) {
+          if (data && data.Key && data.Key.indexOf('error') >= 0) {
+            if (data.Key.indexOf('throw') >= 0) {
+              throw new Error('sorry');
+            }
+
             error = {
               code: 1234,
               message: 'an error message',
