@@ -3,19 +3,40 @@ const _config = { update: jest.fn() };
 
 jest.mock('fs-extra', () => {
   return {
-    createReadStream: jest.fn(() => 'this is a stream'),
+    createReadStream: jest.fn(data => 'this is a stream'),
     readFile: jest.fn(cb => cb(null, 'file content!'))
+  };
+});
+
+jest.mock('node-dir', () => {
+  return {
+    paths: jest.fn((pathToDir, cb) => {
+      const sep = require('path').sep;
+      cb(null, {
+        files: [
+          `${pathToDir}${sep}package.json`,
+          `${pathToDir}${sep}server.js`,
+          `${pathToDir}${sep}template.js`
+        ]
+      });
+    })
   };
 });
 
 const _S3 = class {
   constructor() {
     this.getObject = jest.fn((val, cb) => {
-      const content = val.Key.match(/\.txt/) ? 'Hello!' : '{"data":"Hello!"}';
-      cb(null, {
-        Body: content
-      });
+      const contents = {
+        'path/test.txt': { content: 'Hello!' },
+        'path/test.json': { content: JSON.stringify({ data: 'Hello!' }) },
+        'path/not-found.txt': { error: { code: 'NoSuchKey' } },
+        'path/not-a-json.json': { content: 'Not a json' }
+      };
+
+      const testResult = contents[val.Key];
+      cb(testResult.error || null, { Body: testResult.content });
     });
+
     this.listObjects = jest.fn((val, cb) => {
       const CommonPrefixes =
         val.Bucket === 'my-empty-bucket'
@@ -29,13 +50,27 @@ const _S3 = class {
             }
           ];
 
-      cb(null, {
-        CommonPrefixes
-      });
+      cb(null, { CommonPrefixes });
     });
+
     this.upload = jest.fn(data => {
       return {
-        send: jest.fn(cb => cb(null, data))
+        send: jest.fn(cb => {
+          let error;
+          if (data && data.key && data.key.indexOf('error') >= 0) {
+            error = {
+              code: 1234,
+              message: 'an error message',
+              retryable: true,
+              statusCode: 500,
+              time: new Date(),
+              hostname: 'hostname',
+              region: 'us-west2'
+            };
+          }
+
+          cb(error, data);
+        })
       };
     });
   }

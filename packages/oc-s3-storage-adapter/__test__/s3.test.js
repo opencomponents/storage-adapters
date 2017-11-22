@@ -78,50 +78,56 @@ test('validate missing key/secret conf', () => {
   expect(client.isValid()).toBe(true);
 });
 
-test('test getFile ', () => {
-  const options = {
-    bucket: 'test',
-    region: 'region-test',
-    key: 'test-key',
-    secret: 'test-secret'
-  };
-  const client = new s3(options);
+[
+  { src: 'path/test.txt' },
+  { src: 'path/test.json', json: true },
+  { src: 'path/not-found.txt' },
+  { src: 'path/not-a-json.json', json: true }
+].forEach(scenario => {
+  test(`test getFile ${scenario.src}`, done => {
+    const options = {
+      bucket: 'test',
+      region: 'region-test',
+      key: 'test-key',
+      secret: 'test-secret'
+    };
+    const client = new s3(options);
 
-  client.getFile('path/test.txt', false, (err, data) => {
-    expect(data).toMatchSnapshot();
+    client[scenario.json ? 'getJson' : 'getFile'](
+      scenario.src,
+      false,
+      (err, data) => {
+        expect(err).toMatchSnapshot();
+        expect(data).toMatchSnapshot();
+        done();
+      }
+    );
   });
 });
 
-test('test getJSon ', () => {
-  const options = {
-    bucket: 'test',
-    region: 'region-test',
-    key: 'test-key',
-    secret: 'test-secret',
-    agentProxy: 'agentProxy'
-  };
-  const client = new s3(options);
+['components/', 'components/image', 'components/image/'].forEach(scenario => {
+  test(`test listObjects when bucket is not empty for folder ${
+    scenario
+  }`, done => {
+    const client = new s3({ bucket: 'my-bucket' });
 
-  client.getJson('path/test.json', false, (err, data) => {
-    expect(data).toMatchSnapshot();
+    client.listSubDirectories(scenario, (err, data) => {
+      expect(err).toBeNull();
+      expect(data).toMatchSnapshot();
+      done();
+    });
   });
 });
 
-test('test listObjects when bucket is not empty', () => {
-  const client = new s3({ bucket: 'my-bucket' });
+['hello', 'path/'].forEach(scenario => {
+  test(`test listObjects when bucket is empty for folder ${scenario}`, done => {
+    const client = new s3({ bucket: 'my-empty-bucket' });
 
-  client.listSubDirectories('components/', (err, data) => {
-    expect(err).toBeNull();
-    expect(data).toMatchSnapshot();
-  });
-});
-
-test('test listObjects when bucket is empty ', () => {
-  const client = new s3({ bucket: 'my-empty-bucket' });
-
-  client.listSubDirectories('path/', (err, data) => {
-    expect(err.code).toBe('dir_not_found');
-    expect(err.msg).toBe('Directory "path/" not found');
+    client.listSubDirectories(scenario, (err, data) => {
+      expect(err.code).toBe('dir_not_found');
+      expect(err.msg).toBe(`Directory "${scenario}" not found`);
+      done();
+    });
   });
 });
 

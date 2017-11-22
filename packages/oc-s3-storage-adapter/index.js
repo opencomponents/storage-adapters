@@ -125,7 +125,7 @@ module.exports = function(conf) {
     const normalisedPath =
       dir.lastIndexOf('/') === dir.length - 1 && dir.length > 0
         ? dir
-        : dir + '/';
+        : `${dir}/`;
 
     getClient().listObjects(
       {
@@ -171,16 +171,17 @@ module.exports = function(conf) {
       );
     });
   };
+
   const putFileContent = (fileContent, fileName, isPrivate, callback) => {
-    const fileInfo = getFileInfo(fileName),
-      obj = {
-        Bucket: bucket,
-        Key: fileName,
-        Body: fileContent,
-        ACL: isPrivate ? 'authenticated-read' : 'public-read',
-        ServerSideEncryption: 'AES256',
-        Expires: getNextYear()
-      };
+    const fileInfo = getFileInfo(fileName);
+    const obj = {
+      Bucket: bucket,
+      Key: fileName,
+      Body: fileContent,
+      ACL: isPrivate ? 'authenticated-read' : 'public-read',
+      ServerSideEncryption: 'AES256',
+      Expires: getNextYear()
+    };
 
     if (fileInfo.mimeType) {
       obj.ContentType = fileInfo.mimeType;
