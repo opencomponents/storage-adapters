@@ -15,105 +15,62 @@ Object {
 }
 `;
 
-exports[`test getFile  1`] = `"{\\"data\\": \\"words\\"}"`;
-
-exports[`test getJSon  1`] = `
+exports[`test getFile path/not-a-json.json 1`] = `
 Object {
-  "data": "words",
+  "code": "file_not_valid",
+  "msg": "File \\"path/not-a-json.json\\" not valid",
 }
 `;
+
+exports[`test getFile path/not-a-json.json 2`] = `undefined`;
+
+exports[`test getFile path/not-found.json 1`] = `
+Object {
+  "code": "file_not_found",
+  "msg": "File \\"path/not-found.json\\" not found",
+}
+`;
+
+exports[`test getFile path/not-found.json 2`] = `undefined`;
+
+exports[`test getFile path/not-found.txt 1`] = `
+Object {
+  "code": "file_not_found",
+  "msg": "File \\"path/not-found.txt\\" not found",
+}
+`;
+
+exports[`test getFile path/not-found.txt 2`] = `undefined`;
+
+exports[`test getFile path/test.json 1`] = `null`;
+
+exports[`test getFile path/test.json 2`] = `
+Object {
+  "data": "Hello!",
+}
+`;
+
+exports[`test getFile path/test.txt 1`] = `null`;
+
+exports[`test getFile path/test.txt 2`] = `"Hello!"`;
 
 exports[`test getUrl  1`] = `"/test/1.0.0/test.js"`;
 
-exports[`test listObjects  1`] = `
+exports[`test listObjects when bucket is not empty for folder components/image/ 1`] = `
 Array [
-  "Prefix",
-  "Prefix2",
+  "1.0.0",
+  "1.0.1",
 ]
 `;
 
-exports[`test private putFileContent  1`] = `
+exports[`test put dir (failure) 1`] = `
 Object {
-  "ACL": "authenticated-read",
-  "Body": "words",
-  "Bucket": "my-bucket",
-  "ContentType": "application/javascript",
-  "Expires": 2018-01-01T00:00:00.000Z,
-  "Key": "filename.js",
-  "ServerSideEncryption": "AES256",
+  "code": 1234,
+  "hostname": "hostname",
+  "message": "an error message",
+  "region": "us-west2",
+  "retryable": true,
+  "statusCode": 500,
+  "time": 2018-01-01T00:00:00.000Z,
 }
 `;
-
-exports[`test private putFileContent  2`] = `undefined`;
-
-exports[`test public putFileContent  1`] = `
-Object {
-  "ACL": "public-read",
-  "Body": "words",
-  "Bucket": "my-bucket",
-  "ContentEncoding": "gzip",
-  "Expires": 2019-01-01T00:00:00.000Z,
-  "Key": "filename.gz",
-  "ServerSideEncryption": "AES256",
-}
-`;
-
-exports[`test public putFileContent  2`] = `undefined`;
-
-exports[`test putFile  1`] = `
-Object {
-  "ACL": "public-read",
-  "Body": ReadStream {
-    "_events": Object {
-      "end": [Function],
-    },
-    "_eventsCount": 1,
-    "_maxListeners": undefined,
-    "_readableState": ReadableState {
-      "awaitDrain": 0,
-      "buffer": BufferList {
-        "head": null,
-        "length": 0,
-        "tail": null,
-      },
-      "decoder": null,
-      "defaultEncoding": "utf8",
-      "destroyed": false,
-      "emittedReadable": false,
-      "encoding": null,
-      "endEmitted": false,
-      "ended": false,
-      "flowing": null,
-      "highWaterMark": 65536,
-      "length": 0,
-      "needReadable": false,
-      "objectMode": false,
-      "pipes": null,
-      "pipesCount": 0,
-      "readableListening": false,
-      "reading": false,
-      "readingMore": false,
-      "resumeScheduled": false,
-      "sync": true,
-    },
-    "autoClose": true,
-    "bytesRead": 0,
-    "domain": null,
-    "end": undefined,
-    "fd": null,
-    "flags": "r",
-    "mode": 438,
-    "path": "package.json",
-    "pos": undefined,
-    "readable": true,
-    "start": undefined,
-  },
-  "Bucket": "my-bucket",
-  "ContentType": "application/javascript",
-  "Expires": 2020-01-01T00:00:00.000Z,
-  "Key": "filename.js",
-  "ServerSideEncryption": "AES256",
-}
-`;
-
-exports[`test putFile  2`] = `undefined`;

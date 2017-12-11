@@ -3,6 +3,7 @@
     "postinstall": "lerna bootstrap",
     "coverage": "codecov",
     "clean": "lerna clean",
+    "dev": "jest --watch",
     "updated": "lerna updated",
     "test": "jest",
     "publish": "lerna publish --exact",
@@ -21,11 +22,11 @@
     "collectCoverage": true
   },
   "devDependencies": {
-    "codecov": "^2.2.0",
+    "codecov": "3.0.0",
     "husky": "^0.14.3",
     "jest": "^21.2.1",
     "lerna": "^2.3.1",
-    "lint-staged": "^4.2.3",
+    "lint-staged": "5.0.0",
     "prettier-eslint-cli": "^4.4.0"
   }
 }
