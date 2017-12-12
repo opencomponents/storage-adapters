@@ -12,6 +12,7 @@ global.Date.now = _Date.now;
 jest.mock('fs-extra', () => {
   return {
     createReadStream: jest.fn(() => 'this is a stream'),
+    writeFileSync: jest.fn(() => 'write file'),
     readFile: jest.fn(cb => cb(null, 'file content!'))
   };
 });
@@ -31,6 +32,8 @@ jest.mock('node-dir', () => {
   };
 });
 
+let mockCachedTxt = 0;
+let mockCachedJson = 0;
 jest.mock('@google-cloud/storage', () =>
   jest.fn(() => ({
     bucket: bucket => ({
@@ -57,12 +60,20 @@ jest.mock('@google-cloud/storage', () =>
       },
       file: file => ({
         download: () => {
+          mockCachedTxt++;
+          mockCachedJson++;
           const contents = {
             'path/test.txt': 'Hello!',
-            'path/test.json': JSON.stringify({ data: 'Hello!' }),
+            'path/test.json': JSON.stringify({ value: 'Hello!' }),
             'path/not-found.txt': { error: { code: 'NoSuchKey' } },
             'path/not-found.json': { error: { code: 'NoSuchKey' } },
-            'path/not-a-json.json': { content: 'Not a json' }
+            'path/not-a-json.json': {
+              error: { code: '1', msg: 'not an error' }
+            },
+            'path/to-mutable.json': {
+              content: JSON.stringify({ value: mockCachedJson })
+            },
+            'path/to-mutable.txt': { content: mockCachedTxt }
           };
           const content = contents[file];
           if (content.error) {
@@ -71,7 +82,7 @@ jest.mock('@google-cloud/storage', () =>
             });
           } else {
             return new Promise((resolve, reject) => {
-              process.nextTick(() => resolve());
+              process.nextTick(() => resolve(content));
             });
           }
         }
@@ -198,29 +209,25 @@ test('test put dir (failure)', done => {
   );
 });
 
-//todo getting Storage error
-//
-// test('test private putFileContent ', () => {
-//   const client = new gs({ bucket: 'my-bucket' });
-//   const cb = data => {
-//     expect(data).toMatchSnapshot();
-//   };
-//
-//   Storage.prototype.upload = data => ({ send: fn => fn(cb(data)) });
-//   client.putFileContent('words', 'filename.js', true, cb);
-// });
-//
-// test('test public putFileContent ', () => {
-//   const client = new gs({ bucket: 'my-bucket' });
-//   const cb = data => {
-//     expect(data).toMatchSnapshot();
-//   };
-//
-//   Storage.prototype.upload = data => ({ send: fn => fn(cb(data)) });
-//   client.putFileContent('words', 'filename.gz', false, cb);
-// });
+test('test private putFileContent ', () => {
+  const client = new gs({ bucket: 'my-bucket' });
+  const cb = data => {
+    expect(data).toMatchSnapshot();
+  };
 
-//todo unable to run b/c outside variables
+  client.putFileContent('words', 'filename.js', true, cb);
+});
+
+test('test public putFileContent ', () => {
+  const client = new gs({ bucket: 'my-bucket' });
+  const cb = data => {
+    expect(data).toMatchSnapshot();
+  };
+
+  client.putFileContent('words', 'filename.gz', false, cb);
+});
+
+//todo not working
 // test('test getFile force mode', done => {
 //   const client = new gs({ bucket: 'my-bucket' });
 //

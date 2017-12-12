@@ -17,8 +17,8 @@ Object {
 
 exports[`test getFile path/not-a-json.json 1`] = `
 Object {
-  "code": undefined,
-  "msg": "Cannot read property 'toString' of undefined",
+  "code": "file_not_found",
+  "msg": undefined,
 }
 `;
 
@@ -42,31 +42,34 @@ Object {
 
 exports[`test getFile path/not-found.txt 2`] = `undefined`;
 
-exports[`test getFile path/test.json 1`] = `
+exports[`test getFile path/test.json 1`] = `null`;
+
+exports[`test getFile path/test.json 2`] = `
 Object {
-  "code": undefined,
-  "msg": "Cannot read property 'toString' of undefined",
+  "value": "Hello!",
 }
 `;
 
-exports[`test getFile path/test.json 2`] = `undefined`;
+exports[`test getFile path/test.txt 1`] = `null`;
 
-exports[`test getFile path/test.txt 1`] = `[TypeError: Cannot read property 'toString' of undefined]`;
+exports[`test getFile path/test.txt 2`] = `"Hello!"`;
 
-exports[`test getFile path/test.txt 2`] = `undefined`;
+exports[`test getJSon  1`] = `
+Object {
+  "value": "Hello!",
+}
+`;
 
 exports[`test getUrl  1`] = `"/test/1.0.0/test.js"`;
 
-exports[`test listObjects when bucket is not empty for folder components/image/ 1`] = `undefined`;
-
-exports[`test listObjects when bucket is not empty for folder components/image/ 2`] = `
+exports[`test listObjects when bucket is not empty for folder components/image/ 1`] = `
 Object {
   "code": "dir_not_found",
   "msg": "Directory \\"components/image/\\" not found",
 }
 `;
 
-exports[`test listObjects when bucket is not empty for folder components/image/ 3`] = `undefined`;
+exports[`test listObjects when bucket is not empty for folder components/image/ 2`] = `undefined`;
 
 exports[`test put dir (failure) 1`] = `
 Object {
