@@ -24,7 +24,7 @@
   "dependencies": {
     "async": "^2.5.0",
     "aws-sdk": "^2.137.0",
-    "fs-extra": "^4.0.2",
+    "fs-extra": "5.0.0",
     "lodash": "^4.17.4",
     "nice-cache": "^0.0.5",
     "node-dir": "^0.1.17",
