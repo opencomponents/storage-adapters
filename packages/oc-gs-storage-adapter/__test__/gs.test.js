@@ -49,14 +49,10 @@ jest.mock('@google-cloud/storage', () =>
                 Prefix: 'components/image/1.0.1/'
               }
             ];
-        return new Promise((resolve, reject) => {
-          process.nextTick(() => resolve(CommonPrefixes));
-        });
+        return Promise.resolve(CommonPrefixes);
       },
       upload: () => {
-        return new Promise((resolve, reject) => {
-          process.nextTick(() => resolve());
-        });
+        return Promise.resolve();
       },
       file: file => ({
         download: () => {
@@ -65,25 +61,19 @@ jest.mock('@google-cloud/storage', () =>
           const contents = {
             'path/test.txt': 'Hello!',
             'path/test.json': JSON.stringify({ value: 'Hello!' }),
-            'path/not-found.txt': { error: { code: 'NoSuchKey' } },
-            'path/not-found.json': { error: { code: 'NoSuchKey' } },
+            'path/not-found.txt': { error: { code: 404 } },
+            'path/not-found.json': { error: { code: 404 } },
             'path/not-a-json.json': {
               error: { code: '1', msg: 'not an error' }
             },
-            'path/to-mutable.json': {
-              content: JSON.stringify({ value: mockCachedJson })
-            },
-            'path/to-mutable.txt': { content: mockCachedTxt }
+            'path/to-mutable.json': JSON.stringify({ value: mockCachedJson }),
+            'path/to-mutable.txt': mockCachedTxt
           };
           const content = contents[file];
           if (content.error) {
-            return new Promise((resolve, reject) => {
-              process.nextTick(() => reject({ code: 404 }));
-            });
+            return Promise.reject(content.error);
           } else {
-            return new Promise((resolve, reject) => {
-              process.nextTick(() => resolve(content));
-            });
+            return Promise.resolve(content);
           }
         }
       })
@@ -98,7 +88,24 @@ test('should expose the correct methods', () => {
     prodjectId: '12345',
     path: 'somepath'
   };
-  expect(new gs(options)).toMatchSnapshot();
+  const client = new gs(options);
+  [
+    { method: 'adapterType', value: 'gs' },
+    { method: 'getFile', type: Function },
+    { method: 'getJson', type: Function },
+    { method: 'getUrl', type: Function },
+    { method: 'isValid', type: Function },
+    { method: 'listSubDirectories', type: Function },
+    { method: 'maxConcurrentRequests', value: 20 },
+    { method: 'putDir', type: Function },
+    { method: 'putFileContent', type: Function }
+  ].forEach(api => {
+    if (api.type === Function) {
+      expect(client[api.method]).toBeInstanceOf(api.type);
+    } else {
+      expect(client[api.method]).toBe(api.value);
+    }
+  });
 });
 
 test('validate valid conf', () => {
@@ -138,13 +145,32 @@ test('validate missing path conf', () => {
   expect(client.isValid()).toBe(false);
 });
 
-//Functions utilizing Google Storage
+// Functions utilizing Google Storage
 [
-  { src: 'path/test.txt' },
-  { src: 'path/test.json', json: true },
-  { src: 'path/not-found.txt' },
-  { src: 'path/not-found.json', json: true },
-  { src: 'path/not-a-json.json', json: true }
+  { src: 'path/test.txt', expected: { err: null, data: 'Hello!' } },
+  { src: 'path/test.json', expected: { err: null, data: { value: 'Hello!' } } },
+  {
+    src: 'path/not-found.txt',
+    expected: {
+      err: {
+        code: 'file_not_found',
+        msg: 'File "path/not-found.txt" not found'
+      }
+    }
+  },
+  {
+    src: 'path/not-found.json',
+    expected: {
+      err: {
+        code: 'file_not_found',
+        msg: 'File "path/not-found.json" not found'
+      }
+    }
+  },
+  {
+    src: 'path/not-a-json.json',
+    expected: { err: { code: '1', msg: 'not an error' } }
+  }
 ].forEach(scenario => {
   test(`test getFile ${scenario.src}`, done => {
     const options = {
@@ -153,39 +179,91 @@ test('validate missing path conf', () => {
       path: 'somepath'
     };
     const client = new gs(options);
-
-    client[scenario.json ? 'getJson' : 'getFile'](
+    client[scenario.src.match(/\.json$/) ? 'getJson' : 'getFile'](
       scenario.src,
       false,
       (err, data) => {
-        expect(err).toMatchSnapshot();
-        expect(data).toMatchSnapshot();
+        expect(err).toEqual(scenario.expected.err);
+        expect(data).toEqual(scenario.expected.data);
         done();
       }
     );
   });
 });
 
-test('test getJSon ', () => {
+test('test getFile force mode', done => {
   const options = {
     bucket: 'test',
     projectId: '12345',
     path: 'somepath'
   };
   const client = new gs(options);
-  const cb = (err, data) => {
-    expect(data).toMatchSnapshot();
-  };
-  client.getJson('path/test.json', false, cb);
+
+  client.getFile('path/to-mutable.txt', false, (err1, data1) => {
+    client.getFile('path/to-mutable.txt', (err2, data2) => {
+      client.getFile('path/to-mutable.txt', true, (err3, data3) => {
+        expect(err1).toBeNull;
+        expect(err2).toBeNull;
+        expect(err3).toBeNull;
+        expect(data1).toBe(data2);
+        expect(data3).not.toBe(data1);
+        done();
+      });
+    });
+  });
 });
 
-[('components/', 'components/image', 'components/image/')].forEach(scenario => {
-  test(`test listObjects when bucket is not empty for folder ${scenario}`, done => {
+test('test getJson force mode', done => {
+  const options = {
+    bucket: 'test',
+    projectId: '12345',
+    path: 'somepath'
+  };
+
+  const client = new gs(options);
+
+  client.getJson('path/to-mutable.json', false, (err1, data1) => {
+    client.getJson('path/to-mutable.json', (err2, data2) => {
+      client.getJson('path/to-mutable.json', true, (err3, data3) => {
+        expect(err1).toBeNull;
+        expect(err2).toBeNull;
+        expect(err3).toBeNull;
+        expect(data1.value).toBe(data2.value);
+        expect(data3.value).not.toBe(data1.value);
+        done();
+      });
+    });
+  });
+});
+
+[
+  { path: 'components/', expected: ['image/1.0.0', 'image/1.0.1'] },
+  { path: 'components/image', expected: ['1.0.0', '1.0.1'] },
+  { path: 'components/image/', expected: ['1.0.0', '1.0.1'] }
+].forEach(scenario => {
+  test(`test listSubDirectories when bucket is not empty for folder ${
+    scenario.path
+  }`, done => {
     const client = new gs({ bucket: 'my-bucket' });
 
+    client.listSubDirectories(scenario.path, (err, data) => {
+      expect(err).toBeNull();
+      expect(data).toEqual(scenario.expected);
+      done();
+    });
+  });
+});
+
+['hello', 'path/'].forEach(scenario => {
+  test(`test listSubDirectories when bucket is empty for folder ${
+    scenario
+  }`, done => {
+    const client = new gs({ bucket: 'my-empty-bucket' });
+
     client.listSubDirectories(scenario, (err, data) => {
-      expect(err).toMatchSnapshot();
-      expect(data).toMatchSnapshot();
+      expect(data).toBeUndefined();
+      expect(err.code).toBe('dir_not_found');
+      expect(err.msg).toBe(`Directory "${scenario}" not found`);
       done();
     });
   });
@@ -193,71 +271,37 @@ test('test getJSon ', () => {
 
 test('test getUrl ', () => {
   const client = new gs({ path: '/' });
-  expect(client.getUrl('test', '1.0.0', 'test.js')).toMatchSnapshot();
+  expect(client.getUrl('test', '1.0.0', 'test.js')).toBe('/test/1.0.0/test.js');
 });
 
-test('test put dir (failure)', done => {
-  const client = new gs({ bucket: 'my-bucket' });
-
-  client.putDir(
-    '/absolute-path-to-dir',
-    'components\\componentName-error\\1.0.0',
-    (err, res) => {
-      expect(err).toMatchSnapshot();
-      done();
-    }
-  );
-});
-
-test('test private putFileContent ', () => {
-  const client = new gs({ bucket: 'my-bucket' });
-  const cb = data => {
-    expect(data).toMatchSnapshot();
-  };
-
-  client.putFileContent('words', 'filename.js', true, cb);
-});
-
-test('test public putFileContent ', () => {
-  const client = new gs({ bucket: 'my-bucket' });
-  const cb = data => {
-    expect(data).toMatchSnapshot();
-  };
-
-  client.putFileContent('words', 'filename.gz', false, cb);
-});
-
-//todo not working
-// test('test getFile force mode', done => {
+// TODO: mocks needed for:
+// getClient(...).bucket(...).file(...).makePublic
+// test('test put dir (failure)', done => {
 //   const client = new gs({ bucket: 'my-bucket' });
-//
-//   client.getFile('path/to-mutable.txt', false, (err1, data1) => {
-//     client.getFile('path/to-mutable.txt', (err2, data2) => {
-//       client.getFile('path/to-mutable.txt', true, (err3, data3) => {
-//         expect(err1).toBeNull;
-//         expect(err2).toBeNull;
-//         expect(err3).toBeNull;
-//         expect(data1).toBe(data2);
-//         expect(data3).not.toBe(data1);
-//         done();
-//       });
-//     });
+
+//   client.putDir(
+//     '/absolute-path-to-dir',
+//     'components\\componentName-error\\1.0.0',
+//     (err, res) => {
+//       expect(err).toBe('TODO');
+//       done();
+//     }
+//   );
+// });
+
+// test('test private putFileContent ', () => {
+//   const client = new gs({ bucket: 'my-bucket' });
+//   const cb =
+
+//   client.putFileContent('words', 'filename.js', true,  data => {
+//     expect(data).toBe('');
 //   });
 // });
-//
-// test('test getJson force mode', done => {
+
+// test('test public putFileContent ', () => {
 //   const client = new gs({ bucket: 'my-bucket' });
-//
-//   client.getJson('path/to-mutable.json', false, (err1, data1) => {
-//     client.getJson('path/to-mutable.json', (err2, data2) => {
-//       client.getJson('path/to-mutable.json', true, (err3, data3) => {
-//         expect(err1).toBeNull;
-//         expect(err2).toBeNull;
-//         expect(err3).toBeNull;
-//         expect(data1.value).toBe(data2.value);
-//         expect(data3.value).not.toBe(data1.value);
-//         done();
-//       });
-//     });
+
+//   client.putFileContent('words', 'filename.gz', false, data => {
+//     expect(data).toBe('');
 //   });
 // });
