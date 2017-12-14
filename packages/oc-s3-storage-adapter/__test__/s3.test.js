@@ -15,7 +15,25 @@ test('should expose the correct methods', () => {
     key: 'test-key',
     secret: 'test-secret'
   };
-  expect(new s3(options)).toMatchSnapshot();
+  const client = new s3(options);
+
+  [
+    { method: 'adapterType', value: 's3' },
+    { method: 'getFile', type: Function },
+    { method: 'getJson', type: Function },
+    { method: 'getUrl', type: Function },
+    { method: 'isValid', type: Function },
+    { method: 'listSubDirectories', type: Function },
+    { method: 'maxConcurrentRequests', value: 20 },
+    { method: 'putDir', type: Function },
+    { method: 'putFileContent', type: Function }
+  ].forEach(api => {
+    if (api.type === Function) {
+      expect(client[api.method]).toBeInstanceOf(api.type);
+    } else {
+      expect(client[api.method]).toBe(api.value);
+    }
+  });
 });
 
 test('validate valid conf', () => {
@@ -79,11 +97,30 @@ test('validate missing key/secret conf', () => {
 });
 
 [
-  { src: 'path/test.txt' },
-  { src: 'path/test.json', json: true },
-  { src: 'path/not-found.txt' },
-  { src: 'path/not-found.json', json: true },
-  { src: 'path/not-a-json.json', json: true }
+  { src: 'path/test.txt', expected: { err: null, data: 'Hello!' } },
+  { src: 'path/test.json', expected: { err: null, data: { data: 'Hello!' } } },
+  {
+    src: 'path/not-found.txt',
+    expected: {
+      err: {
+        code: 'file_not_found',
+        msg: 'File "path/not-found.txt" not found'
+      }
+    }
+  },
+  {
+    src: 'path/not-found.json',
+    expected: {
+      err: {
+        code: 'file_not_found',
+        msg: 'File "path/not-found.json" not found'
+      }
+    }
+  },
+  {
+    src: 'path/not-a-json.json',
+    expected: { err: { code: "file_not_valid", msg: "File \"path/not-a-json.json\" not valid"} } 
+  }
 ].forEach(scenario => {
   test(`test getFile ${scenario.src}`, done => {
     const options = {
@@ -93,13 +130,13 @@ test('validate missing key/secret conf', () => {
       secret: 'test-secret'
     };
     const client = new s3(options);
-
-    client[scenario.json ? 'getJson' : 'getFile'](
+    
+    client[scenario.src.match(/\.json$/) ? 'getJson' : 'getFile'](
       scenario.src,
       false,
       (err, data) => {
-        expect(err).toMatchSnapshot();
-        expect(data).toMatchSnapshot();
+        expect(err).toEqual(scenario.expected.err);
+        expect(data).toEqual(scenario.expected.data);
         done();
       }
     );
@@ -154,15 +191,19 @@ test('test getJson force mode', done => {
   });
 });
 
-[('components/', 'components/image', 'components/image/')].forEach(scenario => {
+[
+  { path: 'components/', expected: ['image/1.0.0', 'image/1.0.1'] },
+  { path: 'components/image', expected: ['1.0.0', '1.0.1'] },
+  { path: 'components/image/', expected: ['1.0.0', '1.0.1'] }
+].forEach(scenario => {
   test(`test listObjects when bucket is not empty for folder ${
-    scenario
+    scenario.path
   }`, done => {
     const client = new s3({ bucket: 'my-bucket' });
 
-    client.listSubDirectories(scenario, (err, data) => {
+    client.listSubDirectories(scenario.path, (err, data) => {
       expect(err).toBeNull();
-      expect(data).toMatchSnapshot();
+      expect(data).toEqual(scenario.expected);
       done();
     });
   });
@@ -182,7 +223,7 @@ test('test getJson force mode', done => {
 
 test('test getUrl ', () => {
   const client = new s3({ path: '/' });
-  expect(client.getUrl('test', '1.0.0', 'test.js')).toMatchSnapshot();
+  expect(client.getUrl('test', '1.0.0', 'test.js')).toBe('/test/1.0.0/test.js');;
 });
 
 test('test put dir (failure)', done => {
@@ -192,7 +233,15 @@ test('test put dir (failure)', done => {
     '/absolute-path-to-dir',
     'components\\componentName-error\\1.0.0',
     (err, res) => {
-      expect(err).toMatchSnapshot();
+      expect(err).toEqual({
+        code: 1234,
+        message: 'an error message',
+        retryable: true,
+        statusCode: 500,
+        time: '2018-01-01T00:00:00.000Z',
+        hostname: 'hostname',
+        region: 'us-west2'
+      })
       done();
     }
   );
