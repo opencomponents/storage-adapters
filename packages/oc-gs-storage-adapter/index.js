@@ -7,7 +7,6 @@ const fs = require('fs-extra');
 const nodeDir = require('node-dir');
 const _ = require('lodash');
 const Storage = require('@google-cloud/storage');
-const path = require('path');
 
 const {
   getFileInfo,
