@@ -119,7 +119,12 @@ test('validate missing key/secret conf', () => {
   },
   {
     src: 'path/not-a-json.json',
-    expected: { err: { code: "file_not_valid", msg: "File \"path/not-a-json.json\" not valid"} } 
+    expected: {
+      err: {
+        code: 'file_not_valid',
+        msg: 'File "path/not-a-json.json" not valid'
+      }
+    }
   }
 ].forEach(scenario => {
   test(`test getFile ${scenario.src}`, done => {
@@ -130,7 +135,7 @@ test('validate missing key/secret conf', () => {
       secret: 'test-secret'
     };
     const client = new s3(options);
-    
+
     client[scenario.src.match(/\.json$/) ? 'getJson' : 'getFile'](
       scenario.src,
       false,
@@ -223,7 +228,7 @@ test('test getJson force mode', done => {
 
 test('test getUrl ', () => {
   const client = new s3({ path: '/' });
-  expect(client.getUrl('test', '1.0.0', 'test.js')).toBe('/test/1.0.0/test.js');;
+  expect(client.getUrl('test', '1.0.0', 'test.js')).toBe('/test/1.0.0/test.js');
 });
 
 test('test put dir (failure)', done => {
@@ -241,7 +246,7 @@ test('test put dir (failure)', done => {
         time: '2018-01-01T00:00:00.000Z',
         hostname: 'hostname',
         region: 'us-west2'
-      })
+      });
       done();
     }
   );
