@@ -146,8 +146,7 @@ module.exports = function(conf) {
         (file, cb) => {
           const relativeFile = file.substr(dirInput.length),
             url = (dirOutput + relativeFile).replace(/\\/g, '/');
-
-          putFile(file, url, relativeFile === '/server.js', cb);
+          putFile(url, file, relativeFile === '/server.js', cb);
         },
         callback
       );
@@ -178,15 +177,13 @@ module.exports = function(conf) {
             .bucket(bucketName)
             .file(fileName)
             .makePublic()
-            .then(() => {
-              callback();
-            })
-            .catch(err => callback({ code: err.code, msg: err.message }));
+            .then(callback)
+            .catch(callback);
         } else {
           callback();
         }
       })
-      .catch(err => callback({ code: err.code, msg: err.message }));
+      .catch(callback);
   };
 
   return {
