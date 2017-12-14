@@ -63,7 +63,7 @@ jest.mock('@google-cloud/storage', () =>
         if (filePath.match('-error')) {
           return Promise.reject({
             code: 1234,
-            msg: 'an error message'
+            message: 'an error message'
           });
         }
         return Promise.resolve();
