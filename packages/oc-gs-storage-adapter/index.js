@@ -145,8 +145,8 @@ module.exports = function(conf) {
       async.each(
         paths.files,
         (file, cb) => {
-          const relativeFile = file.substr(dirInput.length),
-            url = (dirOutput + relativeFile).replace(/\\/g, '/');
+          const relativeFile = file.substr(dirInput.length);
+          const url = (dirOutput + relativeFile).replace(/\\/g, '/');
           putFile(url, file, relativeFile === '/server.js', cb);
         },
         callback
@@ -179,12 +179,12 @@ module.exports = function(conf) {
             .file(fileName)
             .makePublic()
             .then(callback)
-            .catch(callback);
+            .catch(err => callback({ code: err.code, msg: err.message }));
         } else {
           callback();
         }
       })
-      .catch(callback);
+      .catch(err => callback({ code: err.code, msg: err.message }));
   };
 
   return {
