@@ -84,10 +84,9 @@ module.exports = function(conf) {
       callback = force;
       force = false;
     }
-
     getFile(filePath, force, (err, file) => {
       if (err) {
-        return callback({ code: err.code, msg: err.message });
+        return callback(err);
       }
 
       try {
@@ -120,14 +119,15 @@ module.exports = function(conf) {
         if (files.length === 0) {
           throw 'no files';
         }
+
         const result = files
           //remove prefix
           .map(file => file.name.replace(normalisedPath, ''))
-          //only get files that aren't in root directory
+          // only get files that aren't in root directory
           .filter(file => file.split('/').length > 1)
           //get directory names
           .map(file => file.split('/')[0])
-          //reduce to unique directories
+          // reduce to unique directories
           .filter((item, i, ar) => ar.indexOf(item) === i);
         callback(null, result);
       })
