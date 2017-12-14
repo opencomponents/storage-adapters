@@ -38,18 +38,26 @@ jest.mock('@google-cloud/storage', () =>
   jest.fn(() => ({
     bucket: bucket => ({
       getFiles: () => {
-        const CommonPrefixes =
+        const files =
           bucket === 'my-empty-bucket'
             ? []
             : [
-              {
-                Prefix: 'components/image/1.0.0/'
-              },
-              {
-                Prefix: 'components/image/1.0.1/'
-              }
+              [
+                {
+                  name: 'components/image/1.0.0/app.js'
+                },
+                {
+                  name: 'components/image/1.0.0/server.js'
+                },
+                {
+                  name: 'components/image/1.0.1/new-server.js'
+                },
+                {
+                  name: 'components/image/1.0.1/new-app.js'
+                }
+              ]
             ];
-        return Promise.resolve(CommonPrefixes);
+        return Promise.resolve(files);
       },
       upload: filePath => {
         if (filePath.match('-error')) {
