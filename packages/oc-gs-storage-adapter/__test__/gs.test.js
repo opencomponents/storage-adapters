@@ -98,7 +98,6 @@ jest.mock('@google-cloud/storage', () =>
   }))
 );
 
-//Tests
 test('should expose the correct methods', () => {
   const options = {
     bucket: 'test',
