@@ -198,9 +198,9 @@ module.exports = function(conf) {
   const putFile = (filePath, fileName, isPrivate, callback) => {
     try {
       const stream = fs.createReadStream(filePath);
-      putFileContent(stream, fileName, isPrivate, callback);
+      return putFileContent(stream, fileName, isPrivate, callback);
     } catch (e) {
-      callback(e);
+      return callback(e);
     }
   };
 

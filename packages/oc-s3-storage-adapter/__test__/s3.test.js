@@ -161,9 +161,9 @@ test('test getFile force mode', done => {
   client.getFile('path/to-mutable.txt', false, (err1, data1) => {
     client.getFile('path/to-mutable.txt', (err2, data2) => {
       client.getFile('path/to-mutable.txt', true, (err3, data3) => {
-        expect(err1).toBeNull;
-        expect(err2).toBeNull;
-        expect(err3).toBeNull;
+        expect(err1).toBeNull();
+        expect(err2).toBeNull();
+        expect(err3).toBeNull();
         expect(data1).toBe(data2);
         expect(data3).not.toBe(data1);
         done();
@@ -185,9 +185,9 @@ test('test getJson force mode', done => {
   client.getJson('path/to-mutable.json', false, (err1, data1) => {
     client.getJson('path/to-mutable.json', (err2, data2) => {
       client.getJson('path/to-mutable.json', true, (err3, data3) => {
-        expect(err1).toBeNull;
-        expect(err2).toBeNull;
-        expect(err3).toBeNull;
+        expect(err1).toBeNull();
+        expect(err2).toBeNull();
+        expect(err3).toBeNull();
         expect(data1.value).toBe(data2.value);
         expect(data3.value).not.toBe(data1.value);
         done();
@@ -219,6 +219,7 @@ test('test getJson force mode', done => {
     const client = new s3({ bucket: 'my-empty-bucket' });
 
     client.listSubDirectories(scenario, (err, data) => {
+      expect(data).toBeUndefined();
       expect(err.code).toBe('dir_not_found');
       expect(err.msg).toBe(`Directory "${scenario}" not found`);
       done();
@@ -238,12 +239,13 @@ test('test put dir (failure)', done => {
     '/absolute-path-to-dir',
     'components\\componentName-error\\1.0.0',
     (err, res) => {
+      expect(res).toBeUndefined();
       expect(err).toEqual({
         code: 1234,
         message: 'an error message',
         retryable: true,
         statusCode: 500,
-        time: '2018-01-01T00:00:00.000Z',
+        time: DATE_TO_USE,
         hostname: 'hostname',
         region: 'us-west2'
       });
@@ -259,6 +261,7 @@ test('test put dir (stream failure throwing)', done => {
     '/absolute-path-to-dir',
     'components\\componentName-error-throw\\1.0.0',
     (err, res) => {
+      expect(res).toBeUndefined();
       expect(err.toString()).toContain('sorry');
       done();
     }
