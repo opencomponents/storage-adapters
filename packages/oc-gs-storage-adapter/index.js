@@ -146,7 +146,7 @@ module.exports = function(conf) {
         (file, cb) => {
           const relativeFile = file.substr(dirInput.length);
           const url = (dirOutput + relativeFile).replace(/\\/g, '/');
-          putFile(url, file, relativeFile === '/server.js', cb);
+          putFile(file, url, relativeFile === '/server.js', cb);
         },
         callback
       );
