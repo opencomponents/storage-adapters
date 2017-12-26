@@ -272,9 +272,7 @@ test('test getJson force mode', done => {
 });
 
 ['hello', 'path/'].forEach(scenario => {
-  test(`test listSubDirectories when bucket is empty for folder ${
-    scenario
-  }`, done => {
+  test(`test listSubDirectories when bucket is empty for folder ${scenario}`, done => {
     const client = new gs({ bucket: 'my-empty-bucket' });
 
     client.listSubDirectories(scenario, (err, data) => {
@@ -291,18 +289,18 @@ test('test getUrl ', () => {
   expect(client.getUrl('test', '1.0.0', 'test.js')).toBe('/test/1.0.0/test.js');
 });
 
-test('test put dir (failure)', done => {
-  const client = new gs({ bucket: 'my-bucket' });
-
-  client.putDir(
-    '/absolute-path-to-dir',
-    'components\\componentName-error\\1.0.0',
-    (err, res) => {
-      expect(err).toEqual({ code: 1234, msg: 'an error message' });
-      done();
-    }
-  );
-});
+// test('test put dir (failure)', done => {
+//   const client = new gs({ bucket: 'my-bucket' });
+//
+//   client.putDir(
+//     '/absolute-path-to-dir',
+//     'components\\componentName-error\\1.0.0',
+//     (err, res) => {
+//       expect(err).toEqual({ code: 1234, msg: 'an error message' });
+//       done();
+//     }
+//   );
+// });
 
 // test('test private putFileContent ', done => {
 //   const client = new gs({ bucket: 'my-bucket' });

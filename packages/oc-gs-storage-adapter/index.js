@@ -177,7 +177,7 @@ module.exports = function(conf) {
             .bucket(bucketName)
             .file(fileName)
             .makePublic()
-            .then(callback)
+            .then(() => callback())
             .catch(err => callback({ code: err.code, msg: err.message }));
         } else {
           callback();
