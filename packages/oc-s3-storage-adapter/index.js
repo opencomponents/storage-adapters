@@ -27,25 +27,84 @@ module.exports = function(conf) {
     return true;
   };
 
+  var configuration = {
+    verbosity: 0,
+    baseUrl: 'http://localhost',
+    port: 3333,
+    tempDir: './temp/',
+    refreshInterval: 600,
+    pollingInterval: 5,
+    storage: {
+      options: {
+        key: 'C8EA-NCOWKILUYLITIQE',
+        secret: 'hc9szUABSnO1EezHoCiuYh1xpqp0JwP6SYDdBA==',
+        bucket: 'foo', // Specified bucket will be used as prefix of the hostname, ie bucket.example.com. Omit for RiakCS
+        region: 'us-east-1',
+        componentsDir: '/store/',
+        signatureVersion: 'v2', // Use v2 for RiakCS
+        sslEnabled: false,
+        path: '//foo.localhost:8080/foo',
+        s3ForcePathStyle: true,
+        endpoint: {
+          protocol: 'http',
+          hostname: 'localhost',
+          port: '8080',
+          href: 'http://localhost:8080/'
+        }
+      }
+    },
+    env: { name: 'production' }
+  };
+
+  // Defaults
+  const bucket = conf.bucket ? conf.bucket : '';
+  const sslEnabled = conf.sslEnabled === false ? { sslEnabled: false } : {};
+  const s3ForcePathStyle = conf.s3ForcePathStyle
+    ? { s3ForcePathStyle: true }
+    : { s3ForcePathStyle: false };
+  const signatureVersion = conf.signatureVersion
+    ? { signatureVersion: conf.signatureVersion }
+    : {};
   const httpOptions = { timeout: conf.timeout || 10000 };
   if (conf.agentProxy) {
     httpOptions.agent = conf.agentProxy;
   }
 
-  AWS.config.update({
+  // Setup AWS config
+  let awsConfig = new AWS.Config({
     accessKeyId: conf.key,
     secretAccessKey: conf.secret,
-    region: conf.region,
-    httpOptions
+    ...signatureVersion,
+    ...sslEnabled,
+    ...s3ForcePathStyle,
+    ...httpOptions,
+    logger: process.stdout
   });
 
-  const bucket = conf.bucket;
+  // Setup endpoint
+  if (conf.endpoint) {
+    let awsEndpoint = new AWS.Endpoint(conf.endpoint.hostname);
+    awsEndpoint.port = conf.endpoint.port;
+    awsEndpoint.protocol = conf.endpoint.protocol;
+    awsEndpoint.path = conf.endpoint.path;
+    awsConfig.update({
+      endpoint: awsEndpoint
+    });
+  }
+
+  // Print debug info
+  if (conf.debug === true) {
+    awsConfig.update({
+      logger: process.stdout
+    });
+  }
+
   const cache = new Cache({
     verbose: !!conf.verbosity,
     refreshInterval: conf.refreshInterval
   });
 
-  const getClient = () => new AWS.S3();
+  const getClient = () => new AWS.S3(awsConfig);
 
   const getFile = (filePath, force, callback) => {
     if (_.isFunction(force)) {
@@ -64,9 +123,9 @@ module.exports = function(conf) {
             return callback(
               err.code === 'NoSuchKey'
                 ? {
-                  code: strings.errors.STORAGE.FILE_NOT_FOUND_CODE,
-                  msg: format(strings.errors.STORAGE.FILE_NOT_FOUND, filePath)
-                }
+                    code: strings.errors.STORAGE.FILE_NOT_FOUND_CODE,
+                    msg: format(strings.errors.STORAGE.FILE_NOT_FOUND, filePath)
+                  }
                 : err
             );
           }
@@ -122,6 +181,7 @@ module.exports = function(conf) {
     `${conf.path}${componentName}/${version}/${fileName}`;
 
   const listSubDirectories = (dir, callback) => {
+    console.log('listSubDirectories', dir);
     const normalisedPath =
       dir.lastIndexOf('/') === dir.length - 1 && dir.length > 0
         ? dir
