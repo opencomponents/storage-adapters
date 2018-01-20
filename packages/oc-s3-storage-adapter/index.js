@@ -149,7 +149,6 @@ module.exports = function(conf) {
     `${conf.path}${componentName}/${version}/${fileName}`;
 
   const listSubDirectories = (dir, callback) => {
-    console.log('listSubDirectories', dir);
     const normalisedPath =
       dir.lastIndexOf('/') === dir.length - 1 && dir.length > 0
         ? dir
