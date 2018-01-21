@@ -302,6 +302,19 @@ test('test put dir (failure)', done => {
   );
 });
 
+test('test put dir ', done => {
+  const client = new gs({ bucket: 'my-bucket' });
+  client.putDir(
+    '/absolute-path-to-dir',
+    'components\\componentName\\1.0.0',
+    (err, res) => {
+      expect(res).toBeUndefined();
+      expect(err).toBeNull();
+      done();
+    }
+  );
+});
+
 test('test private putFileContent ', done => {
   const client = new gs({ bucket: 'my-bucket' });
   client.putFileContent('words', 'filename.js', true, (err, data) => {
