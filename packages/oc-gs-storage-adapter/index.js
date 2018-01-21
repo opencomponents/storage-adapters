@@ -161,29 +161,39 @@ module.exports = function(conf) {
     fs.writeFileSync(tmpobj.name, fileContent);
     const cleanup = (v1, v2) => {
       tmpobj.removeCallback();
-      //TODO: not sure what parms to pass to callback.
-      callback();
+      callback(v1, v2);
     };
     putFile(tmpobj.name, fileName, isPrivate, cleanup);
   };
 
   const putFile = (filePath, fileName, isPrivate, callback) => {
+    const fileInfo = getFileInfo(fileName);
+    const obj = {
+      ACL: isPrivate ? 'authenticated-read' : 'public-read',
+      ContentType: fileInfo.mimeType,
+      Bucket: bucketName,
+      Key: fileName
+    };
+
+    if (fileInfo.gzip) {
+      obj.ContentEncoding = 'gzip';
+    }
     getClient()
       .bucket(bucketName)
       .upload(filePath, { destination: fileName })
       .then(() => {
-        if (!isPrivate) {
+        if (obj.ACL === 'public-read') {
           getClient()
             .bucket(bucketName)
             .file(fileName)
             .makePublic()
-            .then(() => callback())
-            .catch(err => callback({ code: err.code, msg: err.message }));
+            .then(() => callback(null, obj))
+            .catch(err => callback({ code: err.code, msg: err.message }, obj));
         } else {
-          callback();
+          callback(null, obj);
         }
       })
-      .catch(err => callback({ code: err.code, msg: err.message }));
+      .catch(err => callback({ code: err.code, msg: err.message }, obj));
   };
 
   return {

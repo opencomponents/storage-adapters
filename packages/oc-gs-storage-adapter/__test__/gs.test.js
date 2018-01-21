@@ -59,8 +59,8 @@ jest.mock('@google-cloud/storage', () =>
             ];
         return Promise.resolve(files);
       },
-      upload: filePath => {
-        if (filePath.match('-error')) {
+      upload: (filePath, { destination }) => {
+        if (destination.match('-error')) {
           return Promise.reject({
             code: 1234,
             message: 'an error message'
@@ -289,98 +289,99 @@ test('test getUrl ', () => {
   expect(client.getUrl('test', '1.0.0', 'test.js')).toBe('/test/1.0.0/test.js');
 });
 
-// test('test put dir (failure)', done => {
-//   const client = new gs({ bucket: 'my-bucket' });
-//
-//   client.putDir(
-//     '/absolute-path-to-dir',
-//     'components\\componentName-error\\1.0.0',
-//     (err, res) => {
-//       expect(err).toEqual({ code: 1234, msg: 'an error message' });
-//       done();
-//     }
-//   );
-// });
+test('test put dir (failure)', done => {
+  const client = new gs({ bucket: 'my-bucket' });
+  client.putDir(
+    '/absolute-path-to-dir',
+    'components\\componentName-error\\1.0.0',
+    (err, res) => {
+      expect(res).toBeUndefined();
+      expect(err).toEqual({ code: 1234, msg: 'an error message' });
+      done();
+    }
+  );
+});
 
-// test('test private putFileContent ', done => {
-//   const client = new gs({ bucket: 'my-bucket' });
+test('test private putFileContent ', done => {
+  const client = new gs({ bucket: 'my-bucket' });
+  client.putFileContent('words', 'filename.js', true, (err, data) => {
+    expect(err).toBeNull();
+    expect(data.ACL).toBe('authenticated-read');
+    done();
+  });
+});
 
-//   client.putFileContent('words', 'filename.js', true, (err, data) => {
-//     expect(data.ACL).toBe('authenticated-read');
-//     done();
-//   });
-// });
+test('test public putFileContent ', done => {
+  const client = new gs({ bucket: 'my-bucket' });
 
-// test('test public putFileContent ', done => {
-//   const client = new gs({ bucket: 'my-bucket' });
+  client.putFileContent('words', 'filename.gz', false, (err, data) => {
+    expect(err).toBeNull();
+    expect(data.ACL).toBe('public-read');
+    done();
+  });
+});
 
-//   client.putFileContent('words', 'filename.gz', false, (err, data) => {
-//     expect(data.ACL).toBe('public-read');
-//     done()
-//   });
-// });
+test('put a js file ', done => {
+  const client = new gs({ bucket: 'my-bucket' });
 
-// test('put a js file ', done => {
-//   const client = new gs({ bucket: 'my-bucket' });
+  client.putFile('../path', 'hello.js', false, (err, data) => {
+    expect(data.ContentType).toBe('application/javascript');
+    done();
+  });
+});
 
-//   client.putFile('../path', 'hello.js', false, (err, data) => {
-//     expect(data.ContentType).toBe('application/javascript');
-//     done();
-//   });
-// });
+test('put a gzipped js file ', done => {
+  const client = new gs({ bucket: 'my-bucket' });
 
-// test('put a gzipped js file ', done => {
-//   const client = new gs({ bucket: 'my-bucket' });
+  client.putFile('../path', 'hello.js.gz', false, (err, data) => {
+    expect(data.ContentType).toBe('application/javascript');
+    expect(data.ContentEncoding).toBe('gzip');
+    done();
+  });
+});
 
-//   client.putFile('../path', 'hello.js.gz', false, (err, data) => {
-//     expect(data.ContentType).toBe('application/javascript');
-//     expect(data.ContentEncoding).toBe('gzip');
-//     done();
-//   });
-// });
+test('put a css file ', done => {
+  const client = new gs({ bucket: 'my-bucket' });
 
-// test('put a css file ', done => {
-//   const client = new gs({ bucket: 'my-bucket' });
+  client.putFile('../path', 'hello.css', false, (err, data) => {
+    expect(data.ContentType).toBe('text/css');
+    done();
+  });
+});
 
-//   client.putFile('../path', 'hello.css', false, (err, data) => {
-//     expect(data.ContentType).toBe('text/css');
-//     done();
-//   });
-// });
+test('put a gzipped css file ', done => {
+  const client = new gs({ bucket: 'my-bucket' });
 
-// test('put a gzipped css file ', done => {
-//   const client = new gs({ bucket: 'my-bucket' });
+  client.putFile('../path', 'hello.css.gz', false, (err, data) => {
+    expect(data.ContentType).toBe('text/css');
+    expect(data.ContentEncoding).toBe('gzip');
+    done();
+  });
+});
 
-//   client.putFile('../path', 'hello.css.gz', false, (err, data) => {
-//     expect(data.ContentType).toBe('text/css');
-//     expect(data.ContentEncoding).toBe('gzip');
-//     done();
-//   });
-// });
+test('put a jpg file ', done => {
+  const client = new gs({ bucket: 'my-bucket' });
 
-// test('put a jpg file ', done => {
-//   const client = new gs({ bucket: 'my-bucket' });
+  client.putFile('../path', 'hello.jpg', false, (err, data) => {
+    expect(data.ContentType).toBe('image/jpeg');
+    done();
+  });
+});
 
-//   client.putFile('../path', 'hello.jpg', false, (err, data) => {
-//     expect(data.ContentType).toBe('image/jpeg');
-//     done();
-//   });
-// });
+test('put a gif file ', done => {
+  const client = new gs({ bucket: 'my-bucket' });
 
-// test('put a gif file ', done => {
-//   const client = new gs({ bucket: 'my-bucket' });
+  client.putFile('../path', 'hello.gif', false, (err, data) => {
+    expect(data.ContentType).toBe('image/gif');
+    done();
+  });
+});
 
-//   client.putFile('../path', 'hello.gif', false, (err, data) => {
-//     expect(data.ContentType).toBe('image/gif');
-//     done();
-//   });
-// });
+test('put a png file ', done => {
+  const client = new gs({ bucket: 'my-bucket' });
 
-// test('put a png file ', done => {
-//   const client = new gs({ bucket: 'my-bucket' });
-
-//   client.putFile('../path', 'hello.png', false, (err, data) => {
-//     expect(data.ContentType).toBe('image/png');
-//     done();
-//   });
-// });
+  client.putFile('../path', 'hello.png', false, (err, data) => {
+    expect(data.ContentType).toBe('image/png');
+    done();
+  });
+});
