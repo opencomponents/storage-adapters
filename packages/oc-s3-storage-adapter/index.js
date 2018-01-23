@@ -28,6 +28,9 @@ module.exports = function(conf) {
   };
 
   // Defaults
+  const accessKeyId = conf.key;
+  const secretAccessKey = conf.secret;
+  const region = conf.region;
   const bucket = conf.bucket ? conf.bucket : '';
   const sslEnabled = conf.sslEnabled === false ? false : true;
   const s3ForcePathStyle = conf.s3ForcePathStyle ? true : false;
@@ -41,22 +44,25 @@ module.exports = function(conf) {
 
   // Setup AWS config
   let awsConfig = new AWS.Config({
-    accessKeyId: conf.key,
-    secretAccessKey: conf.secret,
-    signatureVersion: signatureVersion,
-    sslEnabled: sslEnabled,
-    s3ForcePathStyle: s3ForcePathStyle,
+    accessKeyId,
+    secretAccessKey,
+    region,
+    signatureVersion,
+    sslEnabled,
+    s3ForcePathStyle,
     httpOptions
   });
 
   // Setup endpoint
   if (conf.endpoint) {
-    let awsEndpoint = new AWS.Endpoint(conf.endpoint.hostname);
-    awsEndpoint.port = conf.endpoint.port;
-    awsEndpoint.protocol = conf.endpoint.protocol;
-    awsEndpoint.path = conf.endpoint.path;
+    let endpoint = new AWS.Endpoint(conf.endpoint.hostname);
+    endpoint.port = conf.endpoint.port ? conf.endpoint.port : endpoint.port;
+    endpoint.protocol = conf.endpoint.protocol
+      ? conf.endpoint.protocol
+      : endpoint.protocol;
+    endpoint.path = conf.endpoint.path ? conf.endpoint.path : endpoint.path;
     awsConfig.update({
-      endpoint: awsEndpoint
+      endpoint
     });
   }
 
