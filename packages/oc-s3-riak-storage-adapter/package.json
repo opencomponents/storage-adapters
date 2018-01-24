@@ -1,6 +1,6 @@
 {
   "name": "oc-s3-riak-storage-adapter",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "RiakCS S3 storage adapter for OC",
   "main": "index.js",
   "repository": {
@@ -18,8 +18,7 @@
     "riakcs"
   ],
   "author": {
-    "name": "Ken Crawford",
-    "email": "kmcrawford@gmail.com"
+    "name": "John Parnefjord"
   },
   "license": "MIT",
   "dependencies": {

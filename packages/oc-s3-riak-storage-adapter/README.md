@@ -1,5 +1,7 @@
 # RiakCS as registry storage
 
+`⚠️ THIS ADAPTER IS IN ACTIVE DEVELOPMENT, DON'T USE IN PRODUCTION`
+
 RiakCS is a S3 compliant object storage, based on the distributed database Riak by Basho. In other words in case AWS S3 isn't an option RiakCS may be an alternative to run the storage in-house or locally as a developer.
 
 ## Installing RiakCS locally
