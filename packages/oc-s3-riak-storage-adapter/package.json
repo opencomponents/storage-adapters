@@ -1,0 +1,28 @@
+{
+  "name": "oc-s3-riak-storage-adapter",
+  "version": "1.0.0",
+  "description": "RiakCS S3 storage adapter for OC",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/opencomponents/storage-adapters.git"
+  },
+  "bugs": {
+    "url": "https://github.com/opencomponents/storage-adapters/issues"
+  },
+  "homepage": "https://github.com/opencomponents/storage-adapters#readme",
+  "keywords": [
+    "oc",
+    "opencomponents",
+    "s3",
+    "riakcs"
+  ],
+  "author": {
+    "name": "Ken Crawford",
+    "email": "kmcrawford@gmail.com"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "oc-s3-storage-adapter": "^1.0.4"
+  }
+}
