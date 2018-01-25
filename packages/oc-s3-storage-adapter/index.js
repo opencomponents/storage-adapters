@@ -55,12 +55,7 @@ module.exports = function(conf) {
 
   // Setup endpoint
   if (conf.endpoint) {
-    let endpoint = new AWS.Endpoint(conf.endpoint.hostname);
-    endpoint.port = conf.endpoint.port ? conf.endpoint.port : endpoint.port;
-    endpoint.protocol = conf.endpoint.protocol
-      ? conf.endpoint.protocol
-      : endpoint.protocol;
-    endpoint.path = conf.endpoint.path ? conf.endpoint.path : endpoint.path;
+    let endpoint = new AWS.Endpoint(conf.endpoint);
     awsConfig.update({
       endpoint
     });
@@ -79,6 +74,8 @@ module.exports = function(conf) {
   });
 
   const getClient = () => new AWS.S3(awsConfig);
+
+  const getConfig = () => getClient();
 
   const getFile = (filePath, force, callback) => {
     if (_.isFunction(force)) {
@@ -247,6 +244,7 @@ module.exports = function(conf) {
     putFile,
     putFileContent,
     adapterType: 's3',
-    isValid
+    isValid,
+    getConfig
   };
 };

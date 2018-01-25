@@ -63,11 +63,7 @@ let configuration = {
       s3ForcePathStyle: true,       // Necessary to get the path right
       debug: true,                  // Log what AWS is up to to stdout 
       // Override endpoint, this is passed straight to AWS.Endpoint constructor - https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Endpoint.html 
-      endpoint: {
-        protocol: 'http',
-        hostname: 'localhost',
-        port: '8080'
-      }  
+      endpoint: 'http://localhost:8080'
     }    
   },
   env: { name: 'production' }
@@ -107,6 +103,9 @@ oc publish my-component/
 
 Now the component should be available at http://localhost:3333/my-component.
 
+## Configuring endpoint
+
+In the example above the full URL is uswed to specify the storage endpoint, ie `http://localhost:8080`. If the protocol is omitted by just specifying `localhost:8080` the configuration will fallback to _https_. 
 
 ## Troubleshooting
 
