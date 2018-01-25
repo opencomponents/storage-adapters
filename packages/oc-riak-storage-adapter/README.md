@@ -32,7 +32,7 @@ Make sure you have installed the _oc_ package and the storage adapter.
 
 ```
 npm install -g oc
-npm install oc-s3-riak-storage-adapter
+npm install oc-riak-storage-adapter
 ```
 
 Create an _index.js_ file and add the access key and secret key to the snippet below.
@@ -40,7 +40,7 @@ Create an _index.js_ file and add the access key and secret key to the snippet b
 ```
 'use strict';
 const oc = require('oc');
-const riak = require('oc-s3-riak-storage-adapter');
+const riak = require('oc-riak-storage-adapter');
 
 let configuration = {
   verbosity: 5,

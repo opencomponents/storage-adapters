@@ -1,7 +1,7 @@
 {
-  "name": "oc-s3-riak-storage-adapter",
+  "name": "oc-riak-storage-adapter",
   "version": "0.0.1",
-  "description": "RiakCS S3 storage adapter for OC",
+  "description": "RiakCS storage adapter for OC",
   "main": "index.js",
   "repository": {
     "type": "git",
