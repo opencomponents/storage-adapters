@@ -1,7 +1,7 @@
 {
-  "name": "oc-s3-storage-adapter",
-  "version": "1.0.4",
-  "description": "S3 storage adapter for OC",
+  "name": "oc-riak-storage-adapter",
+  "version": "0.0.1",
+  "description": "RiakCS storage adapter for OC",
   "main": "index.js",
   "repository": {
     "type": "git",
@@ -14,21 +14,14 @@
   "keywords": [
     "oc",
     "opencomponents",
-    "s3"
+    "s3",
+    "riakcs"
   ],
   "author": {
-    "name": "Ken Crawford",
-    "email": "kmcrawford@gmail.com"
+    "name": "John Parnefjord"
   },
   "license": "MIT",
   "dependencies": {
-    "async": "^2.5.0",
-    "aws-sdk": "^2.184.0",
-    "fs-extra": "5.0.0",
-    "lodash": "^4.17.4",
-    "nice-cache": "^0.0.5",
-    "node-dir": "^0.1.17",
-    "oc-storage-adapters-utils": "1.0.2",
-    "stringformat": "^0.0.5"
+    "oc-s3-storage-adapter": "^1.0.4"
   }
 }

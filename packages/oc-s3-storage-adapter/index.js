@@ -27,25 +27,58 @@ module.exports = function(conf) {
     return true;
   };
 
+  // Defaults
+  const accessKeyId = conf.key;
+  const secretAccessKey = conf.secret;
+  const region = conf.region;
+  const bucket = conf.bucket ? conf.bucket : '';
+  const sslEnabled = conf.sslEnabled === false ? false : true;
+  const s3ForcePathStyle = conf.s3ForcePathStyle ? true : false;
+  const signatureVersion = conf.signatureVersion
+    ? conf.signatureVersion
+    : AWS.Config.signatureVersion;
   const httpOptions = { timeout: conf.timeout || 10000 };
   if (conf.agentProxy) {
     httpOptions.agent = conf.agentProxy;
   }
 
-  AWS.config.update({
-    accessKeyId: conf.key,
-    secretAccessKey: conf.secret,
-    region: conf.region,
+  // Setup AWS config
+  let awsConfig = new AWS.Config({
+    accessKeyId,
+    secretAccessKey,
+    region,
+    signatureVersion,
+    sslEnabled,
+    s3ForcePathStyle,
     httpOptions
   });
 
-  const bucket = conf.bucket;
+  // Setup endpoint
+  if (conf.endpoint) {
+    let endpoint = new AWS.Endpoint(conf.endpoint.hostname);
+    endpoint.port = conf.endpoint.port ? conf.endpoint.port : endpoint.port;
+    endpoint.protocol = conf.endpoint.protocol
+      ? conf.endpoint.protocol
+      : endpoint.protocol;
+    endpoint.path = conf.endpoint.path ? conf.endpoint.path : endpoint.path;
+    awsConfig.update({
+      endpoint
+    });
+  }
+
+  // Print debug info
+  if (conf.debug === true) {
+    awsConfig.update({
+      logger: process.stdout
+    });
+  }
+
   const cache = new Cache({
     verbose: !!conf.verbosity,
     refreshInterval: conf.refreshInterval
   });
 
-  const getClient = () => new AWS.S3();
+  const getClient = () => new AWS.S3(awsConfig);
 
   const getFile = (filePath, force, callback) => {
     if (_.isFunction(force)) {
