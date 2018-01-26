@@ -2,7 +2,7 @@
 
 `⚠️ THIS ADAPTER IS IN ACTIVE DEVELOPMENT, DON'T USE IN PRODUCTION`
 
-RiakCS is a S3 compliant object storage, based on the distributed database Riak by Basho. In other words in case AWS S3 isn't an option RiakCS may be an alternative to run the storage in-house or locally as a developer.
+RiakCS is a S3 compliant object storage, based on the distributed database Riak by Basho. In case AWS S3 isn't an option RiakCS may be an alternative to run the storage in-house or locally as a developer.
 
 ## Installing RiakCS locally
 
@@ -14,13 +14,13 @@ To run and start three buckets, do the following (check https://github.com/ianby
 docker run --env 'RIAK_CS_BUCKETS=foo,bar,baz' --publish '8080:8080' --name 'riak-cs' ianbytchek/riak-cs
 ```
 
-To be able to connect to the S3 storage we need to get the access key and secret key. You will find this in the RiakCS log. To start with, get the docker containerid for the container that we named _riak-cs_:
+This will expose RiakCS on http://localhost:8080/. To be able to interact with the storage you need to get the access key and secret key. You will find this in the RiakCS log. To start with, find the containerid for the container that we named _riak-cs_:
 
 ```
 docker ps
 ```
 
-After RiakCS has started, which may take a minute or two, the keys will show up in the log. 
+After RiakCS has started, which may take a minute or two, the keys will show up top of the log. 
 
 ```
 docker logs <containerid>
@@ -28,7 +28,7 @@ docker logs <containerid>
 
 ## Starting a registry
 
-Make sure you have installed the _oc_ package and the storage adapter.
+Make sure you have installed the _oc_ package and the Riak storage adapter.
 
 ```
 npm install -g oc
@@ -59,15 +59,11 @@ let configuration = {
       componentsDir: 'components',
       signatureVersion: 'v2',       // Use v2 for RiakCS
       sslEnabled: false,
-      path: '//localhost:8080/foo/', 
+      path: 'http://localhost:8080/foo/', 
       s3ForcePathStyle: true,       // Necessary to get the path right
       debug: true,                  // Log what AWS is up to to stdout 
       // Override endpoint, this is passed straight to AWS.Endpoint constructor - https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Endpoint.html 
-      endpoint: {
-        protocol: 'http',
-        hostname: 'localhost',
-        port: '8080'
-      }  
+      endpoint: 'http://localhost:8080'
     }    
   },
   env: { name: 'production' }
@@ -91,15 +87,16 @@ node index.js
 
 The registry should be now be exposed on http://localhost:3333/.
 
-To add the registry config run: 
+
+## Publish a component
+
+Go to the directory that contains the component you want to publish. First you have to add the registry by doing: 
 
 ```
 oc registry add http://localhost:3333/
 ``` 
 
-## Publish a component
-
-To publish a component to the registry run
+Finally, to publish the component to the registry run
 
 ```
 oc publish my-component/
@@ -107,6 +104,9 @@ oc publish my-component/
 
 Now the component should be available at http://localhost:3333/my-component.
 
+## Configuring endpoint
+
+In the example above the full URL is used to specify the storage endpoint, ie `http://localhost:8080`. If the protocol is omitted, `localhost:8080`, the configuration will fallback to _https_.
 
 ## Troubleshooting
 

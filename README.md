@@ -11,6 +11,8 @@ Storage-adapters & utilties for the [OC](https://github.com/opentable/oc) regist
 |--------|-------|-------|
 |S3|[`oc-s3-storage-adapter`](/packages/oc-s3-storage-adapter) | [![npm version](https://badge.fury.io/js/oc-s3-storage-adapter.svg)](http://badge.fury.io/js/oc-s3-storage-adapter) |
 |Google Storage|[`oc-gs-storage-adapter`](/packages/oc-gs-storage-adapter) | [![npm version](https://badge.fury.io/js/oc-gs-storage-adapter.svg)](http://badge.fury.io/js/oc-gs-storage-adapter) |
+|⚠️ WIP! Riak Storage|[`oc-riak-storage-adapter`](/packages/oc-riak-storage-adapter) | [![npm version](https://badge.fury.io/js/oc-riak-storage-adapter.svg)](http://badge.fury.io/js/oc-riak-storage-adapter) |
+
 
 ## Other packages included in this repo
 
