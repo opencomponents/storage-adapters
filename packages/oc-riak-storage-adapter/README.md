@@ -112,14 +112,14 @@ In the example above the full URL is used to specify the storage endpoint, ie `h
 
 If you run into trouble when accessing RiakCS the `s3cmd` can be a helpful companion. Install using _pip_, _homebrew_ any other appropriate tool. See also https://github.com/s3tools/s3cmd/blob/master/INSTALL.
 
-Create a file named `s3.cfg` and add the following snippet with your own key and secret:
+Create a file named `s3.cfg` and add the following snippet with your own access key and secret key:
 
 ```
 [default]
-access_key = <AWS KEY>
+access_key = <ACCESS KEY>
 host_base = localhost:8080
 host_bucket = foo
-secret_key = <AWS SECRET>
+secret_key = <SECRET KEY>
 signature_v2 = True
 ```
 
@@ -130,4 +130,3 @@ For example to list objects
 # License
 
 MIT
-
