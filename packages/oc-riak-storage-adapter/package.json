@@ -1,6 +1,6 @@
 {
   "name": "oc-riak-storage-adapter",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "RiakCS storage adapter for OC",
   "main": "index.js",
   "repository": {
