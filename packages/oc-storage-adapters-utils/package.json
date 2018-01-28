@@ -6,7 +6,8 @@
   "files": [
     "index.js",
     "lib",
-    "LICENSE"
+    "LICENSE",
+    "README.md"
   ],
   "repository": {
     "type": "git",
