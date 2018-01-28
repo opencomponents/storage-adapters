@@ -3,6 +3,10 @@
   "version": "0.0.4",
   "description": "RiakCS storage adapter for OC",
   "main": "index.js",
+  "files": [
+    "index.js",
+    "LICENSE"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/opencomponents/storage-adapters.git"

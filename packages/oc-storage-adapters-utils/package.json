@@ -2,6 +2,12 @@
   "name": "oc-storage-adapters-utils",
   "version": "1.0.2",
   "description": "Common storage adapter utils for OC",
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "lib",
+    "LICENSE"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/opencomponents/storage-adapters.git"
