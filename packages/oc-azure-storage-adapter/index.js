@@ -139,12 +139,19 @@ module.exports = function(conf) {
 
           let allEntries = result.entries
             .map(entry => {
-              let prefixLessName = entry.name.replace(prefix, '');
-              let indexOfLastSlash = prefixLessName.lastIndexOf('/');
-              if (indexOfLastSlash == -1) {
+              const prefixLessName = entry.name.replace(prefix, '');
+              const indexOfLastSlash = prefixLessName.lastIndexOf('/');
+              if (indexOfLastSlash === -1) {
                 return null;
               }
-              return prefixLessName.substr(0, indexOfLastSlash);
+              
+              const filenamelessPath = prefixLessName.substr(0, indexOfLastSlash);
+              const indexOfFirstSlash = filenamelessPath.indexOf('/');
+              if(indexOfFirstSlash === -1) {
+                return filenamelessPath;
+              }
+
+              return filenamelessPath.substr(0, indexOfFirstSlash);
             })
             .filter(entry => entry != null && entry.length > 0);
           if (!result.continuationToken) {
