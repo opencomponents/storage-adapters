@@ -55,13 +55,24 @@ const blobService = {
     }
 
     if (!token) {
+      const entriesToReturn = [
+        { name: 'components/image/1.0.0/image.png' }
+      ].filter(entry => entry.name.startsWith(prefix));
       return callback(null, {
-        entries: [{ name: 'components/image/1.0.0/' }],
+        entries: entriesToReturn,
         continuationToken: 'go!'
       });
     }
 
-    return callback(null, { entries: [{ name: 'components/image/1.0.1/' }] });
+    const entriesToReturn = [
+      {
+        name: 'components/image/1.0.1/image.png'
+      },
+      {
+        name: 'components/components-details.json'
+      }
+    ].filter(entry => entry.name.startsWith(prefix));
+    return callback(null, { entries: entriesToReturn });
   },
   createBlockBlobFromText: (containerName, fileName, __, ___, callback) => {
     let error;

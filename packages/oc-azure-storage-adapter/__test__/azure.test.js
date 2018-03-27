@@ -187,7 +187,8 @@ test('test getJson force mode', done => {
 [
   { path: 'components/', expected: ['image/1.0.0', 'image/1.0.1'] },
   { path: 'components/image', expected: ['1.0.0', '1.0.1'] },
-  { path: 'components/image/', expected: ['1.0.0', '1.0.1'] }
+  { path: 'components/image/', expected: ['1.0.0', '1.0.1'] },
+  { path: 'components/image/1.0.0/', expected: [] }
 ].forEach(scenario => {
   test(`test listObjects when bucket is not empty for folder ${
     scenario.path

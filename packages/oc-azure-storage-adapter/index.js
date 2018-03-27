@@ -136,14 +136,16 @@ module.exports = function(conf) {
             });
           }
 
-          let allEntries = result.entries.map(entry => {
-            let prefixLessName = entry.name.replace(prefix, '');
-            let indexOfLastSlash = prefixLessName.lastIndexOf('/');
-            if (indexOfLastSlash == -1) {
-              return prefixLessName; // something probably went wrong?
-            }
-            return prefixLessName.substr(0, indexOfLastSlash);
-          });
+          let allEntries = result.entries
+            .map(entry => {
+              let prefixLessName = entry.name.replace(prefix, '');
+              let indexOfLastSlash = prefixLessName.lastIndexOf('/');
+              if (indexOfLastSlash == -1) {
+                return null;
+              }
+              return prefixLessName.substr(0, indexOfLastSlash);
+            })
+            .filter(entry => entry != null && entry.length > 0);
           if (!result.continuationToken) {
             return callback(null, allEntries);
           }
