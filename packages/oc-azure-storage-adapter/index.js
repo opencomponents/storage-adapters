@@ -7,6 +7,7 @@ const format = require('stringformat');
 const fs = require('fs-extra');
 const nodeDir = require('node-dir');
 const _ = require('lodash');
+const stream = require('stream');
 
 const {
   getFileInfo,
@@ -147,6 +148,7 @@ module.exports = function(conf) {
             })
             .filter(entry => entry != null && entry.length > 0);
           if (!result.continuationToken) {
+            // TODO: deduplicate
             return callback(null, allEntries);
           }
 
@@ -161,6 +163,7 @@ module.exports = function(conf) {
               }
 
               allEntries = allEntries.concat(entryNames);
+              // TODO: deduplicate
               callback(null, allEntries);
             }
           );
@@ -204,13 +207,22 @@ module.exports = function(conf) {
     }
 
     const uploadToAzureContainer = (containerName, cb) => {
+      if (fileContent instanceof stream.Stream) {
+        return fileContent.pipe(
+          getClient().createWriteStreamToBlockBlob(
+            containerName,
+            fileName,
+            { contentSettings: contentSettings },
+            cb
+          )
+        );
+      }
+
       getClient().createBlockBlobFromText(
         containerName,
         fileName,
         fileContent,
-        {
-          contentSettings: contentSettings
-        },
+        { contentSettings: contentSettings },
         cb
       );
     };
