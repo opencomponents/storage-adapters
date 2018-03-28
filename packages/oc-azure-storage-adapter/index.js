@@ -144,10 +144,13 @@ module.exports = function(conf) {
               if (indexOfLastSlash === -1) {
                 return null;
               }
-              
-              const filenamelessPath = prefixLessName.substr(0, indexOfLastSlash);
+
+              const filenamelessPath = prefixLessName.substr(
+                0,
+                indexOfLastSlash
+              );
               const indexOfFirstSlash = filenamelessPath.indexOf('/');
-              if(indexOfFirstSlash === -1) {
+              if (indexOfFirstSlash === -1) {
                 return filenamelessPath;
               }
 
@@ -213,14 +216,22 @@ module.exports = function(conf) {
       contentSettings.contentEncoding = 'gzip';
     }
 
-    const uploadToAzureContainer = (containerName, cb) => {
+    const uploadToAzureContainer = (rereadable, containerName, cb) => {
       if (fileContent instanceof stream.Stream) {
         return fileContent.pipe(
           getClient().createWriteStreamToBlockBlob(
             containerName,
             fileName,
             { contentSettings: contentSettings },
-            cb
+            (err, res) => {
+              if(rereadable) {
+                // I need  a fresh read stream and this is the only thing I came up with
+                // very ugly and has poor performance, but works
+                fileContent = getClient().createReadStream(containerName, fileName);
+              }
+
+              cb(err, res);
+            }
           )
         );
       }
@@ -234,13 +245,14 @@ module.exports = function(conf) {
       );
     };
 
-    uploadToAzureContainer(conf.privateContainerName, (err, result) => {
+    const makeReReadable = !isPrivate;
+    uploadToAzureContainer(makeReReadable, conf.privateContainerName, (err, result) => {
       if (err) {
         return callback(err);
       }
 
       if (!isPrivate) {
-        return uploadToAzureContainer(conf.publicContainerName, callback);
+        return uploadToAzureContainer(false, conf.publicContainerName, callback);
       }
 
       return callback(null, result);
