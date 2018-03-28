@@ -1,4 +1,16 @@
 const azure = jest.genMockFromModule('azure-storage');
+const stream = require('stream');
+
+class LengthCallbackStream extends stream.Writable {
+  constructor(lengthWrittenCallback) {
+    super();
+    this.lengthWrittenCallback = lengthWrittenCallback;
+  }
+  _write(chunk, enc, next) {
+    this.lengthWrittenCallback(chunk.toString().length);
+    next();
+  }
+}
 
 jest.mock('fs-extra', () => {
   return {
@@ -73,6 +85,22 @@ const blobService = {
       }
     ].filter(entry => entry.name.startsWith(prefix));
     return callback(null, { entries: entriesToReturn });
+  },
+  createWriteStreamToBlockBlob: (containerName, fileName, _, callback) => {
+    let lengthWritten = 0;
+    const writeStream = new LengthCallbackStream(
+      length => (lengthWritten += length)
+    );
+    writeStream.on('finish', () =>
+      callback(null, { lengthWritten, container: containerName })
+    );
+    return writeStream;
+  },
+  createReadStream: (containerName, fileName) => {
+    const fileStream = new stream.Readable();
+    fileStream.push(`${containerName}${fileName}`);
+    fileStream.push(null);
+    return fileStream;
   },
   createBlockBlobFromText: (containerName, fileName, __, ___, callback) => {
     let error;

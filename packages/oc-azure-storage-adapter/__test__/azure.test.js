@@ -1,3 +1,4 @@
+const Readable = require('stream').Readable;
 const azure = require('../');
 
 //Mock Date functions
@@ -263,7 +264,7 @@ test('test put dir (stream failure throwing)', done => {
   );
 });
 
-test('test private putFileContent ', done => {
+test('test private putFileContent', done => {
   const client = new azure({
     publicContainerName: 'pubcon',
     privateContainerName: 'privcon'
@@ -276,7 +277,26 @@ test('test private putFileContent ', done => {
   });
 });
 
-test('test public putFileContent ', done => {
+test('test private putFileContent stream', done => {
+  const client = new azure({
+    publicContainerName: 'pubcon',
+    privateContainerName: 'privcon'
+  });
+
+  const fileContent = 'words';
+  const fileStream = new Readable();
+  fileStream.push(fileContent);
+  fileStream.push(null);
+
+  client.putFileContent(fileStream, 'filename.js', true, (err, result) => {
+    expect(err).toBe(null);
+    expect(result.container).toBe('privcon');
+    expect(result.lengthWritten).toBe(fileContent.length);
+    done();
+  });
+});
+
+test('test public putFileContent', done => {
   const client = new azure({
     publicContainerName: 'pubcon',
     privateContainerName: 'privcon'
@@ -285,6 +305,30 @@ test('test public putFileContent ', done => {
   client.putFileContent('words', 'filename.gz', false, (err, result) => {
     expect(err).toBe(undefined);
     expect(result.container).toBe('pubcon');
+    done();
+  });
+});
+
+test('test public putFileContent stream', done => {
+  const client = new azure({
+    publicContainerName: 'pubcon',
+    privateContainerName: 'privcon'
+  });
+
+  const fileContent = 'words';
+  const fileStream = new Readable();
+  fileStream.push(fileContent);
+  fileStream.push(null);
+
+  client.putFileContent(fileStream, 'filename.js', false, (err, result) => {
+    expect(err).toBe(null);
+    expect(result.container).toBe('pubcon');
+    // less than ideal, based on mock implementation
+    // for public files we need to recreate read stream
+    // and we do it by calling Azure read API
+    // also we expect the length here to relate to privcon, because
+    // we will be re-reading it from private container into public container
+    expect(result.lengthWritten).toBe('privconfilename.js'.length);
     done();
   });
 });
