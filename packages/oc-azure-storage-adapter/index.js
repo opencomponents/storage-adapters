@@ -158,7 +158,6 @@ module.exports = function(conf) {
             })
             .filter(entry => entry != null && entry.length > 0);
           if (!result.continuationToken) {
-            // TODO: deduplicate
             return callback(null, allEntries);
           }
 
@@ -173,7 +172,6 @@ module.exports = function(conf) {
               }
 
               allEntries = allEntries.concat(entryNames);
-              // TODO: deduplicate
               callback(null, allEntries);
             }
           );
@@ -186,7 +184,10 @@ module.exports = function(conf) {
       conf.privateContainerName,
       normalisedPath,
       null,
-      callback
+      (err, res) => {
+        if (err) return callback(err);
+        callback(null, _.uniq(res));
+      }
     );
   };
 
@@ -224,10 +225,13 @@ module.exports = function(conf) {
             fileName,
             { contentSettings: contentSettings },
             (err, res) => {
-              if(rereadable) {
+              if (rereadable) {
                 // I need  a fresh read stream and this is the only thing I came up with
                 // very ugly and has poor performance, but works
-                fileContent = getClient().createReadStream(containerName, fileName);
+                fileContent = getClient().createReadStream(
+                  containerName,
+                  fileName
+                );
               }
 
               cb(err, res);
@@ -246,17 +250,25 @@ module.exports = function(conf) {
     };
 
     const makeReReadable = !isPrivate;
-    uploadToAzureContainer(makeReReadable, conf.privateContainerName, (err, result) => {
-      if (err) {
-        return callback(err);
-      }
+    uploadToAzureContainer(
+      makeReReadable,
+      conf.privateContainerName,
+      (err, result) => {
+        if (err) {
+          return callback(err);
+        }
 
-      if (!isPrivate) {
-        return uploadToAzureContainer(false, conf.publicContainerName, callback);
-      }
+        if (!isPrivate) {
+          return uploadToAzureContainer(
+            false,
+            conf.publicContainerName,
+            callback
+          );
+        }
 
-      return callback(null, result);
-    });
+        return callback(null, result);
+      }
+    );
   };
 
   const putFile = (filePath, fileName, isPrivate, callback) => {
