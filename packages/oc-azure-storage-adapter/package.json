@@ -1,0 +1,40 @@
+{
+  "name": "oc-azure-storage-adapter",
+  "version": "0.0.1",
+  "description": "Azure storage adapter for OC",
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "LICENSE",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/opencomponents/storage-adapters.git"
+  },
+  "bugs": {
+    "url": "https://github.com/opencomponents/storage-adapters/issues"
+  },
+  "homepage": "https://github.com/opencomponents/storage-adapters#readme",
+  "keywords": [
+    "oc",
+    "opencomponents",
+    "azure",
+    "blob"
+  ],
+  "author": {
+    "name": "Piotr Bazydlo",
+    "email": "piotr.bazydlo@gmail.com"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "async": "^2.5.0",
+    "azure-storage": "^2.8.1",
+    "fs-extra": "5.0.0",
+    "lodash": "^4.17.4",
+    "nice-cache": "^0.0.5",
+    "node-dir": "^0.1.17",
+    "oc-storage-adapters-utils": "1.0.2",
+    "stringformat": "^0.0.5"
+  }
+}
