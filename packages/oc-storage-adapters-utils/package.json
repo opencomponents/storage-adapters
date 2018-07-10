@@ -1,6 +1,6 @@
 {
   "name": "oc-storage-adapters-utils",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Common storage adapter utils for OC",
   "main": "index.js",
   "files": [
