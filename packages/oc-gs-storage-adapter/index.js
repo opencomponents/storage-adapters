@@ -182,12 +182,12 @@ module.exports = function(conf) {
     const options = { destination: fileName, gzip: fileInfo.gzip };
 
     if (!isPrivate) {
+      const maxAge = conf.maxAge || 3600;
       options.metadata = {
-        cacheControl: 'public, max-age=5184000'
+        cacheControl: `public, max-age=${maxAge}`
       };
     }
 
-    console.log(options);
     getClient()
       .bucket(bucketName)
       .upload(filePath, options)
