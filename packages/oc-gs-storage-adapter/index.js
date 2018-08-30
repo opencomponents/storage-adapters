@@ -178,9 +178,19 @@ module.exports = function(conf) {
     if (fileInfo.gzip) {
       obj.ContentEncoding = 'gzip';
     }
+
+    const options = { destination: fileName, gzip: fileInfo.gzip };
+
+    if (!isPrivate) {
+      options.metadata = {
+        cacheControl: 'public, max-age=5184000'
+      };
+    }
+
+    console.log(options);
     getClient()
       .bucket(bucketName)
-      .upload(filePath, { destination: fileName })
+      .upload(filePath, options)
       .then(() => {
         if (obj.ACL === 'public-read') {
           getClient()
