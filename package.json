@@ -23,8 +23,8 @@
   },
   "devDependencies": {
     "codecov": "3.1.0",
-    "husky": "^0.14.3",
-    "jest": "23.5.0",
+    "husky": "1.1.0",
+    "jest": "23.6.0",
     "lerna": "3.4.0",
     "lint-staged": "7.3.0",
     "prettier-eslint-cli": "^4.4.0"
