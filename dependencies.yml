@@ -1,29 +1,44 @@
-collectors:
+version: 2
+dependencies:
 
-- type: js-npm
-  path: /
-  actors:
-  # pull requests for updates to any version
-  - type: js-npm
-    versions: "Y.Y.Y"
+  - type: js
+    path: /
+    manifest_updates:
+      filters:
+      - name: ".*"
+        versions: "Y.Y.Y"
 
-- type: js-npm
-  path: packages/oc-s3-storage-adapter
-  actors:
-  # pull requests for updates to any version
-  - type: js-npm
-    versions: "Y.Y.Y"
+  - type: js
+    path: packages/oc-azure-storage-adapter
+    manifest_updates:
+      filters:
+      - name: ".*"
+        versions: "Y.Y.Y"
 
-- type: js-npm
-  path: packages/oc-gs-storage-adapter
-  actors:
-  # pull requests for updates to any version
-  - type: js-npm
-    versions: "Y.Y.Y"
-    
-- type: js-npm
-  path: packages/oc-riak-storage-adapter
-  actors:
-  # pull requests for updates to any version
-  - type: js-npm
-    versions: "Y.Y.Y"
+  - type: js
+    path: packages/oc-gs-storage-adapter
+    manifest_updates:
+      filters:
+      - name: ".*"
+        versions: "Y.Y.Y"
+
+  - type: js
+    path: packages/oc-riak-storage-adapter
+    manifest_updates:
+      filters:
+      - name: ".*"
+        versions: "Y.Y.Y"
+
+  - type: js
+    path: packages/oc-s3-storage-adapter
+    manifest_updates:
+      filters:
+      - name: ".*"
+        versions: "Y.Y.Y"
+
+  - type: js
+    path: packages/oc-storage-adapters-utils
+    manifest_updates:
+      filters:
+      - name: ".*"
+        versions: "Y.Y.Y"
