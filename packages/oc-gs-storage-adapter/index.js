@@ -6,7 +6,7 @@ const format = require('stringformat');
 const fs = require('fs-extra');
 const nodeDir = require('node-dir');
 const _ = require('lodash');
-const Storage = require('@google-cloud/storage');
+const { Storage } = require('@google-cloud/storage');
 
 const {
   getFileInfo,
@@ -22,7 +22,7 @@ module.exports = function(conf) {
     return true;
   };
   const getClient = () => {
-    const client = Storage({
+    const client = new Storage({
       projectId: conf.projectId
     });
     return client;
