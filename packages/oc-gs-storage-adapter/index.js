@@ -77,7 +77,6 @@ module.exports = function(conf) {
 
     getFromGs((err, result) => {
       if (err) {
-        console.log('getFromGs: ', err, filePath);
         return callback({ code: err.code, msg: err.message });
       }
       cache.set('gs-file', filePath, result);
@@ -93,14 +92,12 @@ module.exports = function(conf) {
     }
     getFile(filePath, force, (err, file) => {
       if (err) {
-        console.log('getFile: ', err, filePath);
         return callback(err);
       }
 
       try {
         callback(null, JSON.parse(file));
       } catch (er) {
-        console.log('getJson: ', er, filePath);
         return callback({
           code: strings.errors.STORAGE.FILE_NOT_VALID_CODE,
           msg: format(strings.errors.STORAGE.FILE_NOT_VALID, filePath)
