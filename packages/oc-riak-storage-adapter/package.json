@@ -1,6 +1,6 @@
 {
   "name": "oc-riak-storage-adapter",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "RiakCS storage adapter for OC",
   "main": "index.js",
   "files": [
@@ -27,6 +27,6 @@
   },
   "license": "MIT",
   "dependencies": {
-    "oc-s3-storage-adapter": "^1.1.4"
+    "oc-s3-storage-adapter": "1.1.5"
   }
 }
