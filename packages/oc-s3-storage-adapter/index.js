@@ -195,7 +195,8 @@ module.exports = function(conf) {
           const relativeFile = file.substr(dirInput.length),
             url = (dirOutput + relativeFile).replace(/\\/g, '/');
 
-          putFile(file, url, relativeFile === '/server.js', cb);
+          const serverJsNames = ['/server.js', '\\server.js'];
+          putFile(file, url, serverJsNames.indexOf(relativeFile) !== -1, cb);
         },
         callback
       );
