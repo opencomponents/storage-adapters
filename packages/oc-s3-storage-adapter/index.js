@@ -196,7 +196,7 @@ module.exports = function(conf) {
             url = (dirOutput + relativeFile).replace(/\\/g, '/');
 
           const serverJsNames = ['/server.js', '\\server.js'];
-          putFile(file, url, serverJsNames.indexOf(relativeFile) !== -1, cb);
+          putFile(file, url, serverJsNames.includes(relativeFile), cb);
         },
         callback
       );

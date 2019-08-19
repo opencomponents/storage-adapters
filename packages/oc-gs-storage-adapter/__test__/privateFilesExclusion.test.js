@@ -42,7 +42,6 @@ test('put directory recognizes server.js to be private', done => {
   const client = new gs(options);
 
   client.putDir('.', '.', (_, mockResult) => {
-    console.log(mockResult);
     const separators = ['\\', '/'];
     for (let separator of separators) {
       expect(mockResult[`.${separator}server.js`].res.ACL).toBe(
