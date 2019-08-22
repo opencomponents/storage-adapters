@@ -22,12 +22,14 @@ jest.mock('fs-extra', () => {
 jest.mock('node-dir', () => {
   return {
     paths: jest.fn((pathToDir, cb) => {
-      const sep = require('path').sep;
       cb(null, {
         files: [
-          `${pathToDir}${sep}package.json`,
-          `${pathToDir}${sep}server.js`,
-          `${pathToDir}${sep}template.js`
+          `${pathToDir}\\package.json`,
+          `${pathToDir}\\server.js`,
+          `${pathToDir}\\template.js`,
+          `${pathToDir}/package.json`,
+          `${pathToDir}/server.js`,
+          `${pathToDir}/template.js`
         ]
       });
     })
