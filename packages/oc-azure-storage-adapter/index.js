@@ -209,7 +209,9 @@ module.exports = function(conf) {
 
   const putFileContent = (fileContent, fileName, isPrivate, callback) => {
     const fileInfo = getFileInfo(fileName);
-    const contentSettings = {};
+    const contentSettings = {
+      cacheControl: 'public, max-age=31556926'
+    };
     if (fileInfo.mimeType) {
       contentSettings.contentType = fileInfo.mimeType;
     }

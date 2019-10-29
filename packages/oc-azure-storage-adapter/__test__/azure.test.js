@@ -290,6 +290,9 @@ test('test private putFileContent stream', done => {
     expect(err).toBe(null);
     expect(result.container).toBe('privcon');
     expect(result.lengthWritten).toBe(fileContent.length);
+    expect(result.settings.contentSettings.cacheControl).toBe(
+      'public, max-age=31556926'
+    );
     done();
   });
 });
