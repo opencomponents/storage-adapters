@@ -88,13 +88,18 @@ const blobService = {
     ].filter(entry => entry.name.startsWith(prefix));
     return callback(null, { entries: entriesToReturn });
   },
-  createWriteStreamToBlockBlob: (containerName, fileName, _, callback) => {
+  createWriteStreamToBlockBlob: (
+    containerName,
+    fileName,
+    settings,
+    callback
+  ) => {
     let lengthWritten = 0;
     const writeStream = new LengthCallbackStream(
       length => (lengthWritten += length)
     );
     writeStream.on('finish', () =>
-      callback(null, { lengthWritten, container: containerName })
+      callback(null, { lengthWritten, container: containerName, settings })
     );
     return writeStream;
   },
