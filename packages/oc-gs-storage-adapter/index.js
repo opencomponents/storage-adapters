@@ -6,7 +6,7 @@ const format = require('stringformat');
 const fs = require('fs-extra');
 const nodeDir = require('node-dir');
 const _ = require('lodash');
-const Storage = require('@google-cloud/storage');
+const { Storage } = require('@google-cloud/storage');
 
 const {
   getFileInfo,
@@ -21,12 +21,18 @@ module.exports = function(conf) {
     }
     return true;
   };
+
+  let client = undefined;
+
   const getClient = () => {
-    const client = Storage({
-      projectId: conf.projectId
-    });
+    if (!client) {
+      client = new Storage({
+        projectId: conf.projectId
+      });
+    }
     return client;
   };
+
   const bucketName = conf.bucket;
   const cache = new Cache({
     verbose: !!conf.verbosity,
@@ -141,6 +147,9 @@ module.exports = function(conf) {
 
   const putDir = (dirInput, dirOutput, callback) => {
     nodeDir.paths(dirInput, (err, paths) => {
+      if (err) {
+        return callback(err, undefined);
+      }
       async.each(
         paths.files,
         (file, cb) => {
