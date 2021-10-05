@@ -3,8 +3,10 @@
   "version": "1.0.3",
   "description": "Common storage adapter utils for OC",
   "main": "index.js",
+  "types": "index.d.ts",
   "files": [
     "index.js",
+    "index.d.ts",
     "lib",
     "LICENSE",
     "README.md"
