@@ -9,11 +9,7 @@ const nodeDir = require('node-dir');
 const _ = require('lodash');
 const stream = require('stream');
 
-const {
-  getFileInfo,
-  getNextYear,
-  strings
-} = require('oc-storage-adapters-utils');
+const { getFileInfo, strings } = require('oc-storage-adapters-utils');
 
 module.exports = function(conf) {
   const isValid = () => {
