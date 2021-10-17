@@ -243,6 +243,7 @@ module.exports = function(conf) {
     listSubDirectories: fromCallback(listSubDirectories),
     maxConcurrentRequests: 20,
     putDir: fromCallback(putDir),
+    putFile: fromCallback(putFile),
     putFileContent: fromCallback(putFileContent),
     adapterType: 's3',
     isValid,
