@@ -32,21 +32,21 @@ const _Storage = class {
           bucket === 'my-empty-bucket'
             ? []
             : [
-              [
-                {
-                  name: 'components/image/1.0.0/app.js'
-                },
-                {
-                  name: 'components/image/1.0.0/server.js'
-                },
-                {
-                  name: 'components/image/1.0.1/new-server.js'
-                },
-                {
-                  name: 'components/image/1.0.1/new-app.js'
-                }
-              ]
-            ];
+                [
+                  {
+                    name: 'components/image/1.0.0/app.js'
+                  },
+                  {
+                    name: 'components/image/1.0.0/server.js'
+                  },
+                  {
+                    name: 'components/image/1.0.1/new-server.js'
+                  },
+                  {
+                    name: 'components/image/1.0.1/new-app.js'
+                  }
+                ]
+              ];
         return Promise.resolve(files);
       },
       upload: (filePath, { destination }) => {

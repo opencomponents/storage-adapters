@@ -12,7 +12,7 @@ const { fromCallback } = require('universalify');
 
 const { getFileInfo, strings } = require('oc-storage-adapters-utils');
 
-module.exports = function(conf) {
+module.exports = function (conf) {
   const isValid = () => {
     if (
       !conf.publicContainerName ||
