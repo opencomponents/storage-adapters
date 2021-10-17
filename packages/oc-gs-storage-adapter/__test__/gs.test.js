@@ -169,9 +169,7 @@ test('test getJson force mode', done => {
   { path: 'components/image', expected: ['1.0.0', '1.0.1'] },
   { path: 'components/image/', expected: ['1.0.0', '1.0.1'] }
 ].forEach(scenario => {
-  test(`test listSubDirectories when bucket is not empty for folder ${
-    scenario.path
-  }`, done => {
+  test(`test listSubDirectories when bucket is not empty for folder ${scenario.path}`, done => {
     const client = new gs({ bucket: 'my-bucket' });
 
     client.listSubDirectories(scenario.path, (err, data) => {

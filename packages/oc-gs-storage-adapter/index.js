@@ -14,7 +14,7 @@ const {
   strings
 } = require('oc-storage-adapters-utils');
 
-module.exports = function(conf) {
+module.exports = function (conf) {
   const isValid = () => {
     if (!conf.bucket || !conf.projectId || !conf.path) {
       return false;
@@ -57,9 +57,9 @@ module.exports = function(conf) {
           callback(
             err.code === 404
               ? {
-                code: strings.errors.STORAGE.FILE_NOT_FOUND_CODE,
-                msg: format(strings.errors.STORAGE.FILE_NOT_FOUND, filePath)
-              }
+                  code: strings.errors.STORAGE.FILE_NOT_FOUND_CODE,
+                  msg: format(strings.errors.STORAGE.FILE_NOT_FOUND, filePath)
+                }
               : err
           )
         );

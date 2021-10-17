@@ -20,7 +20,7 @@ This will expose RiakCS on http://localhost:8080/. To be able to interact with t
 docker ps
 ```
 
-After RiakCS has started, which may take a minute or two, the keys will show up top of the log. 
+After RiakCS has started, which may take a minute or two, the keys will show up top of the log.
 
 ```
 docker logs <containerid>
@@ -59,12 +59,12 @@ let configuration = {
       componentsDir: 'components',
       signatureVersion: 'v2',       // Use v2 for RiakCS
       sslEnabled: false,
-      path: 'http://localhost:8080/foo/', 
+      path: 'http://localhost:8080/foo/',
       s3ForcePathStyle: true,       // Necessary to get the path right
-      debug: true,                  // Log what AWS is up to to stdout 
-      // Override endpoint, this is passed straight to AWS.Endpoint constructor - https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Endpoint.html 
+      debug: true,                  // Log what AWS is up to to stdout
+      // Override endpoint, this is passed straight to AWS.Endpoint constructor - https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Endpoint.html
       endpoint: 'http://localhost:8080'
-    }    
+    }
   },
   env: { name: 'production' }
 };
@@ -87,14 +87,13 @@ node index.js
 
 The registry should be now be exposed on http://localhost:3333/.
 
-
 ## Publish a component
 
-Go to the directory that contains the component you want to publish. First you have to add the registry by doing: 
+Go to the directory that contains the component you want to publish. First you have to add the registry by doing:
 
 ```
 oc registry add http://localhost:3333/
-``` 
+```
 
 Finally, to publish the component to the registry run
 
