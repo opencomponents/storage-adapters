@@ -6,7 +6,7 @@ const format = require('stringformat');
 const fs = require('fs-extra');
 const nodeDir = require('node-dir');
 const _ = require('lodash');
-const Storage = require('@google-cloud/storage');
+const { Storage } = require('@google-cloud/storage');
 
 const {
   getFileInfo,
@@ -14,19 +14,25 @@ const {
   strings
 } = require('oc-storage-adapters-utils');
 
-module.exports = function(conf) {
+module.exports = function (conf) {
   const isValid = () => {
     if (!conf.bucket || !conf.projectId || !conf.path) {
       return false;
     }
     return true;
   };
+
+  let client = undefined;
+
   const getClient = () => {
-    const client = Storage({
-      projectId: conf.projectId
-    });
+    if (!client) {
+      client = new Storage({
+        projectId: conf.projectId
+      });
+    }
     return client;
   };
+
   const bucketName = conf.bucket;
   const cache = new Cache({
     verbose: !!conf.verbosity,
@@ -51,9 +57,9 @@ module.exports = function(conf) {
           callback(
             err.code === 404
               ? {
-                code: strings.errors.STORAGE.FILE_NOT_FOUND_CODE,
-                msg: format(strings.errors.STORAGE.FILE_NOT_FOUND, filePath)
-              }
+                  code: strings.errors.STORAGE.FILE_NOT_FOUND_CODE,
+                  msg: format(strings.errors.STORAGE.FILE_NOT_FOUND, filePath)
+                }
               : err
           )
         );
@@ -141,6 +147,9 @@ module.exports = function(conf) {
 
   const putDir = (dirInput, dirOutput, callback) => {
     nodeDir.paths(dirInput, (err, paths) => {
+      if (err) {
+        return callback(err, undefined);
+      }
       async.each(
         paths.files,
         (file, cb) => {
