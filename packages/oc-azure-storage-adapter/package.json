@@ -1,6 +1,6 @@
 {
   "name": "oc-azure-storage-adapter",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Azure storage adapter for OC",
   "main": "index.js",
   "files": [
@@ -28,7 +28,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "async": "^2.5.0",
+    "async": "3.1.1",
     "azure-storage": "^2.8.1",
     "fs-extra": "8.1.0",
     "lodash": "^4.17.4",

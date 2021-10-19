@@ -7,13 +7,13 @@
     "updated": "lerna updated",
     "test": "jest",
     "publish": "lerna publish --exact",
-    "precommit": "lint-staged"
+    "precommit": "lint-staged",
+    "prepare": "husky install"
   },
   "lint-staged": {
     "*.js": [
-      "prettier-eslint --write",
-      "jest --findRelatedTests",
-      "git add"
+      "prettier --single-quote --write",
+      "jest --findRelatedTests"
     ]
   },
   "jest": {
@@ -22,11 +22,17 @@
     "collectCoverage": true
   },
   "devDependencies": {
-    "codecov": "3.6.1",
-    "husky": "3.0.9",
-    "jest": "24.9.0",
-    "lerna": "3.20.2",
-    "lint-staged": "9.4.2",
-    "prettier-eslint-cli": "5.0.0"
+    "@typescript-eslint/eslint-plugin": "5.0.0",
+    "@typescript-eslint/parser": "5.0.0",
+    "codecov": "3.7.1",
+    "eslint": "8.0.1",
+    "eslint-config-prettier": "8.3.0",
+    "eslint-plugin-prettier": "4.0.0",
+    "husky": "7.0.2",
+    "jest": "25.1.0",
+    "lerna": "4.0.0",
+    "lint-staged": "10.0.7",
+    "prettier": "2.4.1",
+    "typescript": "4.4.4"
   }
 }

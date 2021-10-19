@@ -53,13 +53,13 @@ const _S3 = class {
         val.Bucket === 'my-empty-bucket'
           ? []
           : [
-            {
-              Prefix: 'components/image/1.0.0/'
-            },
-            {
-              Prefix: 'components/image/1.0.1/'
-            }
-          ];
+              {
+                Prefix: 'components/image/1.0.0/'
+              },
+              {
+                Prefix: 'components/image/1.0.1/'
+              }
+            ];
 
       cb(null, { CommonPrefixes });
     });

@@ -14,7 +14,7 @@ const {
   strings
 } = require('oc-storage-adapters-utils');
 
-module.exports = function(conf) {
+module.exports = function (conf) {
   const isValid = () => {
     if (
       !conf.bucket ||
@@ -94,9 +94,9 @@ module.exports = function(conf) {
             return callback(
               err.code === 'NoSuchKey'
                 ? {
-                  code: strings.errors.STORAGE.FILE_NOT_FOUND_CODE,
-                  msg: format(strings.errors.STORAGE.FILE_NOT_FOUND, filePath)
-                }
+                    code: strings.errors.STORAGE.FILE_NOT_FOUND_CODE,
+                    msg: format(strings.errors.STORAGE.FILE_NOT_FOUND, filePath)
+                  }
                 : err
             );
           }
