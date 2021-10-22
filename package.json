@@ -1,4 +1,5 @@
 {
+  "license": "MIT",
   "scripts": {
     "postinstall": "lerna bootstrap",
     "coverage": "codecov",
