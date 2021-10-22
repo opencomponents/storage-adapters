@@ -1,9 +1,6 @@
 {
-    "lerna": "2.3.1",
-    "packages": [
-      "packages/*"
-    ],
-    "version": "independent",
-    "npmClient": "npm",
-    "npmClientArgs": ["--no-package-lock"]
-  }
+  "lerna": "2.3.1",
+  "packages": ["packages/*"],
+  "version": "independent",
+  "npmClient": "yarn"
+}

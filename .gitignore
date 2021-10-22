@@ -18,8 +18,8 @@ results
 *.orig
 *.local
 .DS_Store
-yarn.lock
 npm-debug.log
 node_modules
 coverage
 /mocks/handlebars-component/_compile-static-package6/
+package-lock.json
