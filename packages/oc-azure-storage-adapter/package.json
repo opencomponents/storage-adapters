@@ -1,6 +1,6 @@
 {
   "name": "oc-azure-storage-adapter",
-  "version": "0.0.6",
+  "version": "0.1.0",
   "description": "Azure storage adapter for OC",
   "main": "index.js",
   "types": "index.d.ts",
@@ -36,7 +36,7 @@
     "lodash": "^4.17.4",
     "nice-cache": "^0.0.5",
     "node-dir": "^0.1.17",
-    "oc-storage-adapters-utils": "1.0.4",
+    "oc-storage-adapters-utils": "1.1.0",
     "stringformat": "^0.0.5",
     "universalify": "^2.0.0"
   }
