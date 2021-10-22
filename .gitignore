@@ -19,7 +19,6 @@ results
 *.local
 .DS_Store
 yarn.lock
-package-lock.json
 npm-debug.log
 node_modules
 coverage
