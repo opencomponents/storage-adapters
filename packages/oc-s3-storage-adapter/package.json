@@ -3,8 +3,10 @@
   "version": "1.1.6",
   "description": "S3 storage adapter for OC",
   "main": "index.js",
+  "types": "index.d.ts",
   "files": [
     "index.js",
+    "index.d.ts",
     "LICENSE",
     "README.md"
   ],
@@ -33,7 +35,8 @@
     "lodash": "^4.17.4",
     "nice-cache": "^0.0.5",
     "node-dir": "^0.1.17",
-    "oc-storage-adapters-utils": "1.0.3",
-    "stringformat": "^0.0.5"
+    "oc-storage-adapters-utils": "1.0.4",
+    "stringformat": "^0.0.5",
+    "universalify": "^2.0.0"
   }
 }

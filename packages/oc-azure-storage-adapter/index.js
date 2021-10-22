@@ -8,6 +8,7 @@ const fs = require('fs-extra');
 const nodeDir = require('node-dir');
 const _ = require('lodash');
 const stream = require('stream');
+const { fromCallback } = require('universalify');
 
 const { getFileInfo, strings } = require('oc-storage-adapters-utils');
 
@@ -280,14 +281,14 @@ module.exports = function (conf) {
   };
 
   return {
-    getFile,
-    getJson,
+    getFile: fromCallback(getFile),
+    getJson: fromCallback(getJson),
     getUrl,
-    listSubDirectories,
+    listSubDirectories: fromCallback(listSubDirectories),
     maxConcurrentRequests: 20,
-    putDir,
-    putFile,
-    putFileContent,
+    putDir: fromCallback(putDir),
+    putFile: fromCallback(putFile),
+    putFileContent: fromCallback(putFileContent),
     adapterType: 'azure-blob-storage',
     isValid
   };
