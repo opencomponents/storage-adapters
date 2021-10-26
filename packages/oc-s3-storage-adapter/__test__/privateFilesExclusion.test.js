@@ -16,7 +16,7 @@ jest.mock('async', () => {
   };
 });
 
-test('put directory recognizes server.js to be private', done => {
+test('put directory recognizes server.js and .env to be private', done => {
   const options = {
     bucket: 'test',
     region: 'region-test',
@@ -29,6 +29,9 @@ test('put directory recognizes server.js to be private', done => {
   client.putDir('.', '.', (_, mockResult) => {
     const separators = ['\\', '/'];
     for (let separator of separators) {
+      expect(mockResult[`.${separator}.env`].res.ACL).toBe(
+        'authenticated-read'
+      );
       expect(mockResult[`.${separator}server.js`].res.ACL).toBe(
         'authenticated-read'
       );

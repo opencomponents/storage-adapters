@@ -13,6 +13,7 @@ jest.mock('node-dir', () => {
         files: [
           `${pathToDir}${sep}package.json`,
           `${pathToDir}${sep}server.js`,
+          `${pathToDir}${sep}.env`,
           `${pathToDir}${sep}template.js`
         ]
       });
@@ -40,7 +41,13 @@ const _Storage = class {
                     name: 'components/image/1.0.0/server.js'
                   },
                   {
+                    name: 'components/image/1.0.0/.env'
+                  },
+                  {
                     name: 'components/image/1.0.1/new-server.js'
+                  },
+                  {
+                    name: 'components/image/1.0.1/new-.env'
                   },
                   {
                     name: 'components/image/1.0.1/new-app.js'

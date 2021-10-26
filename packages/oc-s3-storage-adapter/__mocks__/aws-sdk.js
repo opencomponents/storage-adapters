@@ -15,9 +15,11 @@ jest.mock('node-dir', () => {
         files: [
           `${pathToDir}\\package.json`,
           `${pathToDir}\\server.js`,
+          `${pathToDir}\\.env`,
           `${pathToDir}\\template.js`,
           `${pathToDir}/package.json`,
           `${pathToDir}/server.js`,
+          `${pathToDir}/.env`,
           `${pathToDir}/template.js`
         ]
       });
