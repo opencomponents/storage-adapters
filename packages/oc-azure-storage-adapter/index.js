@@ -196,13 +196,15 @@ module.exports = function (conf) {
           const relativeFile = file.substr(dirInput.length),
             url = (dirOutput + relativeFile).replace(/\\/g, '/');
 
-          const privateFileNames = [
-            '/server.js',
-            '\\server.js',
-            '/.env',
-            '\\.env'
-          ];
-          putFile(file, url, privateFileNames.includes(relativeFile), cb);
+          const serverPattern = /(\\|\/)server\.js/;
+          const dotFilePattern = /(\\|\/)\..+/;
+          const privateFilePatterns = [serverPattern, dotFilePattern];
+          putFile(
+            file,
+            url,
+            privateFilePatterns.some(r => r.test(relativeFile)),
+            cb
+          );
         },
         callback
       );
