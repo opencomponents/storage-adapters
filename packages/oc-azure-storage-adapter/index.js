@@ -91,14 +91,16 @@ module.exports = function (conf) {
         return callback(err);
       }
 
+      let parsed = null;
       try {
-        callback(null, JSON.parse(file));
+        parsed = JSON.parse(file);
       } catch (er) {
         return callback({
           code: strings.errors.STORAGE.FILE_NOT_VALID_CODE,
           msg: format(strings.errors.STORAGE.FILE_NOT_VALID, filePath)
         });
       }
+      callback(null, parsed);
     });
   };
 
@@ -272,12 +274,14 @@ module.exports = function (conf) {
   };
 
   const putFile = (filePath, fileName, isPrivate, callback) => {
+    let stream = null;
     try {
-      const stream = fs.createReadStream(filePath);
-      return putFileContent(stream, fileName, isPrivate, callback);
+      stream = fs.createReadStream(filePath);
     } catch (e) {
+      console.log('putfile error!', e);
       return callback(e);
     }
+    return putFileContent(stream, fileName, isPrivate, callback);
   };
 
   return {
