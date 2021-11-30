@@ -1,6 +1,6 @@
 {
   "name": "oc-azure-storage-adapter",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Azure storage adapter for OC",
   "main": "index.js",
   "types": "index.d.ts",
