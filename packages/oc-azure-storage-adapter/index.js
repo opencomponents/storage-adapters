@@ -207,81 +207,87 @@ module.exports = function (conf) {
   };
 
   const putFileContent = (fileContent, fileName, isPrivate, callback) => {
-    const fileInfo = getFileInfo(fileName);
-    const contentSettings = {
-      cacheControl: 'public, max-age=31556926'
-    };
-    if (fileInfo.mimeType) {
-      contentSettings.contentType = fileInfo.mimeType;
-    }
+    try {
+      const fileInfo = getFileInfo(fileName);
+      const contentSettings = {
+        cacheControl: 'public, max-age=31556926'
+      };
+      if (fileInfo.mimeType) {
+        contentSettings.contentType = fileInfo.mimeType;
+      }
 
-    if (fileInfo.gzip) {
-      contentSettings.contentEncoding = 'gzip';
-    }
+      if (fileInfo.gzip) {
+        contentSettings.contentEncoding = 'gzip';
+      }
 
-    const uploadToAzureContainer = (rereadable, containerName, cb) => {
-      if (fileContent instanceof stream.Stream) {
-        return fileContent.pipe(
-          getClient().createWriteStreamToBlockBlob(
+      const uploadToAzureContainer = (rereadable, containerName, cb) => {
+        try {
+          if (fileContent instanceof stream.Stream) {
+            return fileContent.pipe(
+              getClient().createWriteStreamToBlockBlob(
+                containerName,
+                fileName,
+                { contentSettings: contentSettings },
+                (err, res) => {
+                  if (rereadable) {
+                    // I need  a fresh read stream and this is the only thing I came up with
+                    // very ugly and has poor performance, but works
+                    fileContent = getClient().createReadStream(
+                      containerName,
+                      fileName
+                    );
+                  }
+
+                  cb(err, res);
+                }
+              )
+            );
+          }
+
+          getClient().createBlockBlobFromText(
             containerName,
             fileName,
+            fileContent,
             { contentSettings: contentSettings },
-            (err, res) => {
-              if (rereadable) {
-                // I need  a fresh read stream and this is the only thing I came up with
-                // very ugly and has poor performance, but works
-                fileContent = getClient().createReadStream(
-                  containerName,
-                  fileName
-                );
-              }
-
-              cb(err, res);
-            }
-          )
-        );
-      }
-
-      getClient().createBlockBlobFromText(
-        containerName,
-        fileName,
-        fileContent,
-        { contentSettings: contentSettings },
-        cb
-      );
-    };
-
-    const makeReReadable = !isPrivate;
-    uploadToAzureContainer(
-      makeReReadable,
-      conf.privateContainerName,
-      (err, result) => {
-        if (err) {
-          return callback(err);
-        }
-
-        if (!isPrivate) {
-          return uploadToAzureContainer(
-            false,
-            conf.publicContainerName,
-            callback
+            cb
           );
+        } catch (err) {
+          return cb(err);
         }
+      };
 
-        return callback(null, result);
-      }
-    );
+      const makeReReadable = !isPrivate;
+      uploadToAzureContainer(
+        makeReReadable,
+        conf.privateContainerName,
+        (err, result) => {
+          if (err) {
+            return callback(err);
+          }
+
+          if (!isPrivate) {
+            return uploadToAzureContainer(
+              false,
+              conf.publicContainerName,
+              callback
+            );
+          }
+
+          return callback(null, result);
+        }
+      );
+    } catch (err) {
+      return callback(err);
+    }
   };
 
   const putFile = (filePath, fileName, isPrivate, callback) => {
-    let stream = null;
     try {
-      stream = fs.createReadStream(filePath);
+      const stream = fs.createReadStream(filePath);
+      putFileContent(stream, fileName, isPrivate, callback);
     } catch (e) {
-      console.log('putfile error!', e);
       return callback(e);
     }
-    return putFileContent(stream, fileName, isPrivate, callback);
   };
 
   return {
