@@ -7,9 +7,11 @@ jest.mock('node-dir', () => {
         files: [
           `${pathToDir}\\package.json`,
           `${pathToDir}\\server.js`,
+          `${pathToDir}\\.env`,
           `${pathToDir}\\template.js`,
           `${pathToDir}/package.json`,
           `${pathToDir}/server.js`,
+          `${pathToDir}/.env`,
           `${pathToDir}/template.js`
         ]
       });
@@ -33,7 +35,7 @@ jest.mock('async', () => {
   };
 });
 
-test('put directory recognizes server.js to be private', done => {
+test('put directory recognizes server.js and .env to be private', done => {
   const options = {
     bucket: 'test',
     projectId: '12345',
@@ -45,6 +47,9 @@ test('put directory recognizes server.js to be private', done => {
     const separators = ['\\', '/'];
     for (let separator of separators) {
       expect(mockResult[`.${separator}server.js`].res.ACL).toBe(
+        'authenticated-read'
+      );
+      expect(mockResult[`.${separator}.env`].res.ACL).toBe(
         'authenticated-read'
       );
       expect(mockResult[`.${separator}package.json`].res.ACL).toBe(

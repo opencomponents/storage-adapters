@@ -16,7 +16,7 @@ jest.mock('async', () => {
   };
 });
 
-test('put directory recognizes server.js to be private', done => {
+test('put directory recognizes server.js and .env to be private', done => {
   const client = new adapter({
     publicContainerName: 'pubcon',
     privateContainerName: 'privcon'
@@ -28,6 +28,7 @@ test('put directory recognizes server.js to be private', done => {
       expect(mockResult[`.${separator}server.js`].res.container).toBe(
         'privcon'
       );
+      expect(mockResult[`.${separator}.env`].res.container).toBe('privcon');
       expect(mockResult[`.${separator}package.json`].res.container).toBe(
         'pubcon'
       );
