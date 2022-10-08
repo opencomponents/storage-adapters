@@ -1,6 +1,4 @@
-'use strict';
-
-module.exports = function (extension) {
+export function getMimeType(extension: string) {
   return {
     '.js': 'application/javascript',
     '.css': 'text/css',
@@ -11,4 +9,4 @@ module.exports = function (extension) {
     '.svg': 'image/svg+xml',
     '.html': 'text/html'
   }[extension];
-};
+}

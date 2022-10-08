@@ -1,21 +1,28 @@
-'use strict';
-
-const async = require('async');
-const Cache = require('nice-cache');
-const format = require('stringformat');
-const fs = require('fs-extra');
-const nodeDir = require('node-dir');
-const _ = require('lodash');
-const { Storage } = require('@google-cloud/storage');
-const { fromCallback } = require('universalify');
-
-const {
+import async from 'async';
+import Cache from 'nice-cache';
+import format from 'stringformat';
+import fs from 'fs-extra';
+import nodeDir from 'node-dir';
+import _ from 'lodash';
+import { Storage, UploadOptions } from '@google-cloud/storage';
+import tmp from 'tmp';
+import { fromCallback } from 'universalify';
+import {
   getFileInfo,
-  getNextYear,
+  StorageAdapter,
   strings
-} = require('oc-storage-adapters-utils');
+} from 'oc-storage-adapters-utils';
 
-module.exports = function (conf) {
+export interface GsConfig {
+  bucket: string;
+  projectId: string;
+  path: string;
+  maxAge?: boolean;
+  verbosity?: boolean;
+  refreshInterval?: number;
+}
+
+export default function gsAdapter(conf: GsConfig): StorageAdapter {
   const isValid = () => {
     if (!conf.bucket || !conf.projectId || !conf.path) {
       return false;
@@ -23,7 +30,7 @@ module.exports = function (conf) {
     return true;
   };
 
-  let client = undefined;
+  let client: Storage | undefined = undefined;
 
   const getClient = () => {
     if (!client) {
@@ -40,13 +47,13 @@ module.exports = function (conf) {
     refreshInterval: conf.refreshInterval
   });
 
-  const getFile = (filePath, force, callback) => {
+  const getFile = (filePath: string, force: boolean, callback: any) => {
     if (_.isFunction(force)) {
       callback = force;
       force = false;
     }
 
-    const getFromGs = cb => {
+    const getFromGs = (cb: any) => {
       getClient()
         .bucket(bucketName)
         .file(filePath)
@@ -76,9 +83,9 @@ module.exports = function (conf) {
       return callback(null, cached);
     }
 
-    getFromGs((err, result) => {
+    getFromGs((err: Error | null, result: any) => {
       if (err) {
-        return callback({ code: err.code, msg: err.message });
+        return callback({ code: (err as any).code, msg: err.message });
       }
       cache.set('gs-file', filePath, result);
       cache.sub('gs-file', filePath, getFromGs);
@@ -86,12 +93,12 @@ module.exports = function (conf) {
     });
   };
 
-  const getJson = (filePath, force, callback) => {
+  const getJson = (filePath: string, force: boolean, callback: any) => {
     if (_.isFunction(force)) {
       callback = force;
       force = false;
     }
-    getFile(filePath, force, (err, file) => {
+    getFile(filePath, force, (err: Error | null, file: string) => {
       if (err) {
         return callback(err);
       }
@@ -107,10 +114,10 @@ module.exports = function (conf) {
     });
   };
 
-  const getUrl = (componentName, version, fileName) =>
+  const getUrl = (componentName: string, version: string, fileName: string) =>
     `${conf.path}${componentName}/${version}/${fileName}`;
 
-  const listSubDirectories = (dir, callback) => {
+  const listSubDirectories = (dir: string, callback: any) => {
     const normalisedPath =
       dir.lastIndexOf('/') === dir.length - 1 && dir.length > 0
         ? dir
@@ -146,7 +153,7 @@ module.exports = function (conf) {
       );
   };
 
-  const putDir = (dirInput, dirOutput, callback) => {
+  const putDir = (dirInput: string, dirOutput: string, callback: any) => {
     nodeDir.paths(dirInput, (err, paths) => {
       if (err) {
         return callback(err, undefined);
@@ -171,22 +178,30 @@ module.exports = function (conf) {
     });
   };
 
-  const putFileContent = (fileContent, fileName, isPrivate, callback) => {
-    const tmp = require('tmp');
-
+  const putFileContent = (
+    fileContent: string,
+    fileName: string,
+    isPrivate: boolean,
+    callback: any
+  ) => {
     const tmpobj = tmp.fileSync();
 
     fs.writeFileSync(tmpobj.name, fileContent);
-    const cleanup = (v1, v2) => {
+    const cleanup = (v1: any, v2: any) => {
       tmpobj.removeCallback();
       callback(v1, v2);
     };
     putFile(tmpobj.name, fileName, isPrivate, cleanup);
   };
 
-  const putFile = (filePath, fileName, isPrivate, callback) => {
+  const putFile = (
+    filePath: string,
+    fileName: string,
+    isPrivate: boolean,
+    callback: any
+  ) => {
     const fileInfo = getFileInfo(fileName);
-    const obj = {
+    const obj: any = {
       ACL: isPrivate ? 'authenticated-read' : 'public-read',
       ContentType: fileInfo.mimeType,
       Bucket: bucketName,
@@ -197,7 +212,10 @@ module.exports = function (conf) {
       obj.ContentEncoding = 'gzip';
     }
 
-    const options = { destination: fileName, gzip: fileInfo.gzip };
+    const options: UploadOptions = {
+      destination: fileName,
+      gzip: fileInfo.gzip
+    };
 
     if (!isPrivate) {
       const maxAge = conf.maxAge || 3600;
@@ -235,5 +253,7 @@ module.exports = function (conf) {
     putFileContent: fromCallback(putFileContent),
     adapterType: 'gs',
     isValid
-  };
-};
+  } as any;
+}
+
+module.exports = gsAdapter;

@@ -1,18 +1,30 @@
-'use strict';
+import async from 'async';
+import azure from 'azure-storage';
+import Cache from 'nice-cache';
+import format from 'stringformat';
+import fs from 'fs-extra';
+import nodeDir from 'node-dir';
+import _ from 'lodash';
+import stream from 'stream';
+import { fromCallback } from 'universalify';
 
-const async = require('async');
-const azure = require('azure-storage');
-const Cache = require('nice-cache');
-const format = require('stringformat');
-const fs = require('fs-extra');
-const nodeDir = require('node-dir');
-const _ = require('lodash');
-const stream = require('stream');
-const { fromCallback } = require('universalify');
+import {
+  getFileInfo,
+  strings,
+  StorageAdapter
+} from 'oc-storage-adapters-utils';
 
-const { getFileInfo, strings } = require('oc-storage-adapters-utils');
+export interface AzureConfig {
+  publicContainerName: string;
+  privateContainerName: string;
+  accountName: string;
+  accountKey: string;
+  path: string;
+  verbosity?: boolean;
+  refreshInterval?: number;
+}
 
-module.exports = function (conf) {
+export default function azureAdapter(conf: AzureConfig): StorageAdapter {
   const isValid = () => {
     if (
       !conf.publicContainerName ||
@@ -33,19 +45,19 @@ module.exports = function (conf) {
   const getClient = () =>
     azure.createBlobService(conf.accountName, conf.accountKey);
 
-  const getFile = (filePath, force, callback) => {
+  const getFile = (filePath: string, force: boolean, callback: any) => {
     if (_.isFunction(force)) {
       callback = force;
       force = false;
     }
 
-    const getFromAzure = cb => {
+    const getFromAzure = (cb: any) => {
       getClient().getBlobToText(
         conf.privateContainerName,
         filePath,
         (err, fileContent) => {
           if (err) {
-            if (err.statusCode === 404) {
+            if ((err as any).statusCode === 404) {
               return cb({
                 code: strings.errors.STORAGE.FILE_NOT_FOUND_CODE,
                 msg: format(strings.errors.STORAGE.FILE_NOT_FOUND, filePath)
@@ -70,7 +82,7 @@ module.exports = function (conf) {
       return callback(null, cached);
     }
 
-    getFromAzure((err, result) => {
+    getFromAzure((err: Error | null, result: any) => {
       if (err) {
         return callback(err);
       }
@@ -80,13 +92,13 @@ module.exports = function (conf) {
     });
   };
 
-  const getJson = (filePath, force, callback) => {
+  const getJson = (filePath: string, force: boolean, callback: any) => {
     if (_.isFunction(force)) {
       callback = force;
       force = false;
     }
 
-    getFile(filePath, force, (err, file) => {
+    getFile(filePath, force, (err: Error | null, file: string) => {
       if (err) {
         return callback(err);
       }
@@ -104,21 +116,21 @@ module.exports = function (conf) {
     });
   };
 
-  const getUrl = (componentName, version, fileName) =>
+  const getUrl = (componentName: string, version: string, fileName: string) =>
     `${conf.path}${componentName}/${version}/${fileName}`;
 
-  const listSubDirectories = (dir, callback) => {
+  const listSubDirectories = (dir: string, callback: any) => {
     const normalisedPath =
       dir.lastIndexOf('/') === dir.length - 1 && dir.length > 0
         ? dir
         : `${dir}/`;
 
     const listBlobsWithPrefix = (
-      azureClient,
-      containerName,
-      prefix,
-      continuationToken,
-      callback
+      azureClient: azure.BlobService,
+      containerName: string,
+      prefix: string,
+      continuationToken: azure.common.ContinuationToken,
+      callback: any
     ) => {
       azureClient.listBlobsSegmentedWithPrefix(
         containerName,
@@ -165,7 +177,7 @@ module.exports = function (conf) {
             containerName,
             prefix,
             result.continuationToken,
-            (err, entryNames) => {
+            (err: Error | null, entryNames: string[]) => {
               if (err) {
                 return callback(err);
               }
@@ -182,15 +194,15 @@ module.exports = function (conf) {
       getClient(),
       conf.privateContainerName,
       normalisedPath,
-      null,
-      (err, res) => {
+      null as unknown as azure.common.ContinuationToken,
+      (err: Error | null, res: string[]) => {
         if (err) return callback(err);
         callback(null, _.uniq(res));
       }
     );
   };
 
-  const putDir = (dirInput, dirOutput, callback) => {
+  const putDir = (dirInput: string, dirOutput: string, callback: any) => {
     nodeDir.paths(dirInput, (err, paths) => {
       async.each(
         paths.files,
@@ -213,12 +225,18 @@ module.exports = function (conf) {
     });
   };
 
-  const putFileContent = (fileContent, fileName, isPrivate, callback) => {
+  const putFileContent = (
+    fileContent: string | fs.ReadStream,
+    fileName: string,
+    isPrivate: boolean,
+    callback: any
+  ) => {
     try {
       const fileInfo = getFileInfo(fileName);
-      const contentSettings = {
-        cacheControl: 'public, max-age=31556926'
-      };
+      const contentSettings: azure.BlobService.CreateBlockBlobRequestOptions['contentSettings'] =
+        {
+          cacheControl: 'public, max-age=31556926'
+        };
       if (fileInfo.mimeType) {
         contentSettings.contentType = fileInfo.mimeType;
       }
@@ -227,7 +245,11 @@ module.exports = function (conf) {
         contentSettings.contentEncoding = 'gzip';
       }
 
-      const uploadToAzureContainer = (rereadable, containerName, cb) => {
+      const uploadToAzureContainer = (
+        rereadable: boolean,
+        containerName: string,
+        cb: any
+      ) => {
         try {
           if (fileContent instanceof stream.Stream) {
             return fileContent.pipe(
@@ -239,6 +261,8 @@ module.exports = function (conf) {
                   if (rereadable) {
                     // I need  a fresh read stream and this is the only thing I came up with
                     // very ugly and has poor performance, but works
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-ignore
                     fileContent = getClient().createReadStream(
                       containerName,
                       fileName
@@ -267,7 +291,7 @@ module.exports = function (conf) {
       uploadToAzureContainer(
         makeReReadable,
         conf.privateContainerName,
-        (err, result) => {
+        (err: Error | null, result: any) => {
           if (err) {
             return callback(err);
           }
@@ -288,7 +312,12 @@ module.exports = function (conf) {
     }
   };
 
-  const putFile = (filePath, fileName, isPrivate, callback) => {
+  const putFile = (
+    filePath: string,
+    fileName: string,
+    isPrivate: boolean,
+    callback: any
+  ) => {
     try {
       const stream = fs.createReadStream(filePath);
       putFileContent(stream, fileName, isPrivate, callback);
@@ -308,5 +337,7 @@ module.exports = function (conf) {
     putFileContent: fromCallback(putFileContent),
     adapterType: 'azure-blob-storage',
     isValid
-  };
-};
+  } as any;
+}
+
+module.exports = azureAdapter;
