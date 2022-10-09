@@ -2,14 +2,14 @@
   "name": "oc-storage-adapters-utils",
   "version": "1.1.0",
   "description": "Common storage adapter utils for OC",
-  "main": "index.js",
-  "types": "index.d.ts",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "tsc": "tsc",
+    "test": "echo \"Error: run tests from root\" && exit 1"
+  },
   "files": [
-    "index.js",
-    "index.d.ts",
-    "lib",
-    "LICENSE",
-    "README.md"
+    "lib"
   ],
   "repository": {
     "type": "git",

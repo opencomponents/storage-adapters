@@ -1,5 +1,5 @@
 const Readable = require('stream').Readable;
-const azure = require('../');
+const azure = require('../lib');
 
 //Mock Date functions
 const DATE_TO_USE = new Date('2017');

@@ -1,5 +1,5 @@
 'use strict';
-const gs = require('../');
+const gs = require('../lib');
 
 //Mock Date functions
 const DATE_TO_USE = new Date('2017');

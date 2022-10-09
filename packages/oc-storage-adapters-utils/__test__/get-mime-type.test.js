@@ -1,4 +1,4 @@
-const getMimeType = require('../lib/get-mime-type');
+const getMimeType = require('../lib/get-mime-type').getMimeType;
 
 const scenarios = [
   { ext: '.js', mime: 'application/javascript' },

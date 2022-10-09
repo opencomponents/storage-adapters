@@ -1,4 +1,4 @@
-const getNextYear = require('../lib/get-next-year');
+const getNextYear = require('../lib/get-next-year').getNextYear;
 
 const DATE_TO_USE = new Date('2017');
 const _Date = Date;
