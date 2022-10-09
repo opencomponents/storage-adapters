@@ -1,4 +1,4 @@
-const s3 = require('../');
+const s3 = require('../lib');
 
 jest.mock('async', () => {
   return {

@@ -1,4 +1,4 @@
-const gs = require('../');
+const gs = require('../lib');
 
 jest.mock('node-dir', () => {
   return {

@@ -1,4 +1,4 @@
-const s3 = require('../');
+const s3 = require('../lib');
 
 //Mock Date functions
 const DATE_TO_USE = new Date('2017');

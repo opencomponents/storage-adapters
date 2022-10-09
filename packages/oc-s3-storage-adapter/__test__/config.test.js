@@ -1,6 +1,6 @@
 'use strict';
 jest.dontMock('aws-sdk');
-const s3 = require('../');
+const s3 = require('../lib');
 const domain = 'domain.net';
 
 test('Validate endpoint with default settings', () => {

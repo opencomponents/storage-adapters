@@ -1,4 +1,4 @@
-const adapter = require('../');
+const adapter = require('../lib');
 
 jest.mock('async', () => {
   return {
