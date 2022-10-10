@@ -171,13 +171,6 @@ export default function azureAdapter(conf: AzureConfig): StorageAdapter {
       }
     }
 
-    // if (subDirectories.length === 0) {
-    //   throw {
-    //     code: strings.errors.STORAGE.DIR_NOT_FOUND_CODE,
-    //     msg: format(strings.errors.STORAGE.DIR_NOT_FOUND, dir)
-    //   };
-    // }
-
     return subDirectories;
   };
 
