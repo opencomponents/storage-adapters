@@ -1,4 +1,5 @@
 const Readable = require('stream').Readable;
+const { fromPromise } = require('universalify');
 const azure = require('../lib');
 
 //Mock Date functions
@@ -129,7 +130,7 @@ test('validate partial credentials, no name', () => {
     };
     const client = new azure(options);
 
-    client[scenario.src.match(/\.json$/) ? 'getJson' : 'getFile'](
+    fromPromise(client[scenario.src.match(/\.json$/) ? 'getJson' : 'getFile'])(
       scenario.src,
       false,
       (err, data) => {
@@ -148,10 +149,11 @@ test('test getFile force mode', done => {
   };
 
   const client = new azure(options);
+  const getFile = fromPromise(client.getFile);
 
-  client.getFile('path/to-mutable.txt', false, (err1, data1) => {
-    client.getFile('path/to-mutable.txt', (err2, data2) => {
-      client.getFile('path/to-mutable.txt', true, (err3, data3) => {
+  getFile('path/to-mutable.txt', false, (err1, data1) => {
+    getFile('path/to-mutable.txt', (err2, data2) => {
+      getFile('path/to-mutable.txt', true, (err3, data3) => {
         expect(err1).toBeNull();
         expect(err2).toBeNull();
         expect(err3).toBeNull();
@@ -170,10 +172,11 @@ test('test getJson force mode', done => {
   };
 
   const client = new azure(options);
+  const getJson = fromPromise(client.getJson);
 
-  client.getJson('path/to-mutable.json', false, (err1, data1) => {
-    client.getJson('path/to-mutable.json', (err2, data2) => {
-      client.getJson('path/to-mutable.json', true, (err3, data3) => {
+  getJson('path/to-mutable.json', false, (err1, data1) => {
+    getJson('path/to-mutable.json', (err2, data2) => {
+      getJson('path/to-mutable.json', true, (err3, data3) => {
         expect(err1).toBeNull();
         expect(err2).toBeNull();
         expect(err3).toBeNull();
@@ -197,8 +200,8 @@ test('test getJson force mode', done => {
       privateContainerName: 'privcon'
     });
 
-    client.listSubDirectories(scenario.path, (err, data) => {
-      expect(err).toBeNull();
+    fromPromise(client.listSubDirectories)(scenario.path, (err, data) => {
+      expect(err).toBeFalsy();
       expect(data).toEqual(scenario.expected);
       done();
     });
@@ -212,10 +215,8 @@ test('test getJson force mode', done => {
       privateContainerName: 'my-empty-container'
     });
 
-    client.listSubDirectories(scenario, (err, data) => {
-      expect(data).toBeUndefined();
-      expect(err.code).toBe('dir_not_found');
-      expect(err.msg).toBe(`Directory "${scenario}" not found`);
+    fromPromise(client.listSubDirectories)(scenario, (err, data) => {
+      expect(data).toEqual([]);
       done();
     });
   });
@@ -232,7 +233,7 @@ test('test put dir (failure)', done => {
     privateContainerName: 'privcon'
   });
 
-  client.putDir(
+  fromPromise(client.putDir)(
     '/absolute-path-to-dir',
     'components\\componentName-error\\1.0.0',
     (err, res) => {
@@ -251,12 +252,12 @@ test('test put dir (stream failure throwing)', done => {
     privateContainerName: 'privcon'
   });
 
-  client.putDir(
+  fromPromise(client.putDir)(
     '/absolute-path-to-dir',
     'components\\componentName-error-throw\\1.0.0',
     (err, res) => {
       expect(res).toBeUndefined();
-      expect(err.toString()).toContain('sorry');
+      expect(err.msg).toContain('sorry');
       done();
     }
   );
@@ -268,11 +269,16 @@ test('test private putFileContent', done => {
     privateContainerName: 'privcon'
   });
 
-  client.putFileContent('words', 'filename.js', true, (err, result) => {
-    expect(err).toBe(null);
-    expect(result.container).toBe('privcon');
-    done();
-  });
+  fromPromise(client.putFileContent)(
+    'words',
+    'filename.js',
+    true,
+    (err, result) => {
+      expect(err).toBeFalsy();
+      expect(result.container).toBe('privcon');
+      done();
+    }
+  );
 });
 
 test('test private putFileContent stream', done => {
@@ -286,15 +292,20 @@ test('test private putFileContent stream', done => {
   fileStream.push(fileContent);
   fileStream.push(null);
 
-  client.putFileContent(fileStream, 'filename.js', true, (err, result) => {
-    expect(err).toBe(null);
-    expect(result.container).toBe('privcon');
-    expect(result.lengthWritten).toBe(fileContent.length);
-    expect(result.settings.contentSettings.cacheControl).toBe(
-      'public, max-age=31556926'
-    );
-    done();
-  });
+  fromPromise(client.putFileContent)(
+    fileStream,
+    'filename.js',
+    true,
+    (err, result) => {
+      expect(err).toBeFalsy();
+      expect(result.container).toBe('privcon');
+      expect(result.lengthWritten).toBe(fileContent.length);
+      expect(result.settings.blobHTTPHeaders.blobCacheControl).toBe(
+        'public, max-age=31556926'
+      );
+      done();
+    }
+  );
 });
 
 test('test public putFileContent', done => {
@@ -303,11 +314,16 @@ test('test public putFileContent', done => {
     privateContainerName: 'privcon'
   });
 
-  client.putFileContent('words', 'filename.gz', false, (err, result) => {
-    expect(err).toBe(undefined);
-    expect(result.container).toBe('pubcon');
-    done();
-  });
+  fromPromise(client.putFileContent)(
+    'words',
+    'filename.gz',
+    false,
+    (err, result) => {
+      expect(err).toBeFalsy();
+      expect(result.container).toBe('pubcon');
+      done();
+    }
+  );
 });
 
 test('test public putFileContent stream', done => {
@@ -321,17 +337,17 @@ test('test public putFileContent stream', done => {
   fileStream.push(fileContent);
   fileStream.push(null);
 
-  client.putFileContent(fileStream, 'filename.js', false, (err, result) => {
-    expect(err).toBe(null);
-    expect(result.container).toBe('pubcon');
-    // less than ideal, based on mock implementation
-    // for public files we need to recreate read stream
-    // and we do it by calling Azure read API
-    // also we expect the length here to relate to privcon, because
-    // we will be re-reading it from private container into public container
-    expect(result.lengthWritten).toBe('privconfilename.js'.length);
-    done();
-  });
+  fromPromise(client.putFileContent)(
+    fileStream,
+    'filename.js',
+    false,
+    (err, result) => {
+      expect(err).toBeFalsy();
+      expect(result.container).toBe('pubcon');
+      expect(result.lengthWritten).toBe(fileContent.length);
+      done();
+    }
+  );
 });
 
 test('put a js file ', done => {
@@ -340,8 +356,8 @@ test('put a js file ', done => {
     privateContainerName: 'privcon'
   });
 
-  client.putFile('../path', 'hello.js', false, err => {
-    expect(err).toBe(undefined);
+  fromPromise(client.putFile)('../path', 'hello.js', false, err => {
+    expect(err).toBeFalsy();
     done();
   });
 });

@@ -1,3 +1,4 @@
+const { fromPromise } = require('universalify');
 const adapter = require('../lib');
 
 jest.mock('async', () => {
@@ -22,20 +23,16 @@ test('put directory recognizes server.js and .env to be private', done => {
     privateContainerName: 'privcon'
   });
 
-  client.putDir('.', '.', (_, mockResult) => {
-    const separators = ['\\', '/'];
-    for (let separator of separators) {
-      expect(mockResult[`.${separator}server.js`].res.container).toBe(
-        'privcon'
-      );
-      expect(mockResult[`.${separator}.env`].res.container).toBe('privcon');
-      expect(mockResult[`.${separator}package.json`].res.container).toBe(
-        'pubcon'
-      );
-      expect(mockResult[`.${separator}template.js`].res.container).toBe(
-        'pubcon'
-      );
-    }
+  fromPromise(client.putDir)('.', '.', (_, mockResult) => {
+    const serverMock = mockResult.find(x => x.fileName === `./server.js`);
+    const envMock = mockResult.find(x => x.fileName === './.env');
+    const packageMock = mockResult.find(x => x.fileName === './package.json');
+    const templateMock = mockResult.find(x => x.fileName === './template.js');
+
+    expect(serverMock.container).toBe('privcon');
+    expect(envMock.container).toBe('privcon');
+    expect(packageMock.container).toBe('pubcon');
+    expect(templateMock.container).toBe('pubcon');
 
     done();
   });
