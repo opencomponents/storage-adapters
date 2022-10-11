@@ -1,21 +1,23 @@
-import async from 'async';
-import AWS from 'aws-sdk';
+import { S3 } from '@aws-sdk/client-s3';
+import {
+  NodeHttpHandler,
+  NodeHttpHandlerOptions
+} from '@aws-sdk/node-http-handler';
 import Cache from 'nice-cache';
 import format from 'stringformat';
 import fs from 'fs-extra';
-import nodeDir from 'node-dir';
+import nodeDir, { PathsResult } from 'node-dir';
 import _ from 'lodash';
-import { fromCallback } from 'universalify';
+import { promisify } from 'util';
 
-import {
-  StorageAdapter,
-  getFileInfo,
-  getNextYear,
-  strings
-} from 'oc-storage-adapters-utils';
+import { getFileInfo, getNextYear, strings } from 'oc-storage-adapters-utils';
 
 import type { Agent as httpAgent } from 'http';
 import type { Agent as httpsAgent } from 'https';
+
+const getPaths: (path: string) => Promise<PathsResult> = promisify(
+  nodeDir.paths
+);
 
 type RequireAllOrNone<ObjectType, KeysType extends keyof ObjectType = never> = (
   | Required<Pick<ObjectType, KeysType>> // Require all of the given keys.
@@ -32,7 +34,6 @@ export type S3Config = RequireAllOrNone<
     path: string;
     sslEnabled?: boolean;
     s3ForcePathStyle?: boolean;
-    signatureVersion?: string;
     timeout?: number;
     agentProxy?: httpAgent | httpsAgent;
     endpoint?: string;
@@ -42,6 +43,35 @@ export type S3Config = RequireAllOrNone<
   },
   'key' | 'secret'
 >;
+
+export interface StorageAdapter {
+  adapterType: string;
+  getFile(filePath: string): Promise<string>;
+  getJson<T = unknown>(filePath: string, force?: boolean): Promise<T>;
+  getUrl: (componentName: string, version: string, fileName: string) => string;
+  listSubDirectories(dir: string): Promise<string[]>;
+  maxConcurrentRequests: number;
+  putDir(folderPath: string, filePath: string): Promise<unknown>;
+  putFile(
+    filePath: string,
+    fileName: string,
+    isPrivate: boolean
+  ): Promise<unknown>;
+  putFileContent(
+    data: unknown,
+    path: string,
+    isPrivate: boolean
+  ): Promise<unknown>;
+  isValid: () => boolean;
+}
+
+const streamToString = (stream: NodeJS.ReadableStream) =>
+  new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    stream.on('data', chunk => chunks.push(chunk));
+    stream.on('error', reject);
+    stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+  });
 
 export default function s3Adapter(conf: S3Config): StorageAdapter {
   const isValid = () => {
@@ -63,237 +93,176 @@ export default function s3Adapter(conf: S3Config): StorageAdapter {
   const bucket = conf.bucket ? conf.bucket : '';
   const sslEnabled = conf.sslEnabled === false ? false : true;
   const s3ForcePathStyle = conf.s3ForcePathStyle ? true : false;
-  const signatureVersion = conf.signatureVersion
-    ? conf.signatureVersion
-    : (AWS.Config as any).signatureVersion;
-  const httpOptions: any = { timeout: conf.timeout || 10000 };
-  if (conf.agentProxy) {
-    httpOptions.agent = conf.agentProxy;
-  }
-
-  // Setup AWS config
-  const awsConfig = new AWS.Config({
-    accessKeyId,
-    secretAccessKey,
-    region,
-    signatureVersion,
-    sslEnabled,
-    s3ForcePathStyle,
-    httpOptions
-  });
-
-  // Setup endpoint
-  if (conf.endpoint) {
-    const endpoint = new AWS.Endpoint(conf.endpoint);
-    awsConfig.update({
-      endpoint
-    } as any);
-  }
-
-  // Print debug info
-  if (conf.debug === true) {
-    awsConfig.update({
-      logger: process.stdout
-    } as any);
-  }
 
   const cache = new Cache({
     verbose: !!conf.verbosity,
     refreshInterval: conf.refreshInterval
   });
 
-  const getClient = () => new AWS.S3(awsConfig);
-
-  const getConfig = () => getClient();
-
-  const getFile = (filePath: string, force: boolean, callback: any) => {
-    if (_.isFunction(force)) {
-      callback = force;
-      force = false;
+  let requestHandler: NodeHttpHandler | undefined;
+  if (conf.agentProxy) {
+    const handlerOptions: NodeHttpHandlerOptions = {
+      connectionTimeout: conf.timeout || 10000
+    };
+    if (sslEnabled) {
+      handlerOptions.httpAgent = conf.agentProxy as httpAgent;
+    } else {
+      handlerOptions.httpsAgent = conf.agentProxy as httpsAgent;
     }
+    requestHandler = new NodeHttpHandler(handlerOptions);
+  }
 
-    const getFromAws = (cb: any) => {
-      getClient().getObject(
-        {
+  const getClient = () =>
+    new S3({
+      logger: conf.debug ? (console.log as any) : undefined,
+      tls: sslEnabled,
+      credentials: {
+        accessKeyId: accessKeyId!,
+        secretAccessKey: secretAccessKey!
+      },
+      requestHandler,
+      endpoint: conf.endpoint,
+      region,
+      forcePathStyle: s3ForcePathStyle
+    });
+
+  const getFile = async (filePath: string, force = false) => {
+    const getFromAws = async () => {
+      try {
+        const data = await getClient().getObject({
           Bucket: bucket,
           Key: filePath
-        },
-        (err, data) => {
-          if (err) {
-            return callback(
-              err.code === 'NoSuchKey'
-                ? {
-                    code: strings.errors.STORAGE.FILE_NOT_FOUND_CODE,
-                    msg: format(strings.errors.STORAGE.FILE_NOT_FOUND, filePath)
-                  }
-                : err
-            );
-          }
+        });
 
-          cb(null, data.Body!.toString());
-        }
-      );
+        return streamToString(data.Body as any);
+      } catch (err) {
+        throw (err as any).code === 'NoSuchKey'
+          ? {
+              code: strings.errors.STORAGE.FILE_NOT_FOUND_CODE,
+              msg: format(strings.errors.STORAGE.FILE_NOT_FOUND, filePath)
+            }
+          : err;
+      }
     };
 
     if (force) {
-      return getFromAws(callback);
+      return getFromAws();
     }
 
     const cached = cache.get('s3-file', filePath);
-
     if (cached) {
-      return callback(null, cached);
+      return cached;
     }
 
-    getFromAws((err: Error | null, result: any) => {
-      if (err) {
-        return callback(err);
-      }
-      cache.set('s3-file', filePath, result);
-      cache.sub('s3-file', filePath, getFromAws);
-      callback(null, result);
-    });
+    const result = await getFromAws();
+    cache.set('s3-file', filePath, result);
+    cache.sub('s3-file', filePath, getFromAws);
+
+    return result;
   };
 
-  const getJson = (filePath: string, force: boolean, callback: any) => {
-    if (_.isFunction(force)) {
-      callback = force;
-      force = false;
+  const getJson = async (filePath: string, force = false) => {
+    const file = await getFile(filePath, force);
+
+    try {
+      return JSON.parse(file);
+    } catch (er) {
+      throw {
+        code: strings.errors.STORAGE.FILE_NOT_VALID_CODE,
+        msg: format(strings.errors.STORAGE.FILE_NOT_VALID, filePath)
+      };
     }
-
-    getFile(filePath, force, (err: Error | null, file: string) => {
-      if (err) {
-        return callback(err);
-      }
-
-      try {
-        callback(null, JSON.parse(file));
-      } catch (er) {
-        return callback({
-          code: strings.errors.STORAGE.FILE_NOT_VALID_CODE,
-          msg: format(strings.errors.STORAGE.FILE_NOT_VALID, filePath)
-        });
-      }
-    });
   };
 
   const getUrl = (componentName: string, version: string, fileName: string) =>
     `${conf.path}${componentName}/${version}/${fileName}`;
 
-  const listSubDirectories = (dir: string, callback: any) => {
+  const listSubDirectories = async (dir: string) => {
     const normalisedPath =
       dir.lastIndexOf('/') === dir.length - 1 && dir.length > 0
         ? dir
         : `${dir}/`;
 
-    getClient().listObjects(
-      {
-        Bucket: bucket,
-        Prefix: normalisedPath,
-        Delimiter: '/'
-      },
-      (err, data) => {
-        if (err) {
-          return callback(err);
-        }
+    const data = await getClient().listObjects({
+      Bucket: bucket,
+      Prefix: normalisedPath,
+      Delimiter: '/'
+    });
 
-        if (data.CommonPrefixes!.length === 0) {
-          return callback({
-            code: strings.errors.STORAGE.DIR_NOT_FOUND_CODE,
-            msg: format(strings.errors.STORAGE.DIR_NOT_FOUND, dir)
-          });
-        }
+    if (data.CommonPrefixes!.length === 0) {
+      throw {
+        code: strings.errors.STORAGE.DIR_NOT_FOUND_CODE,
+        msg: format(strings.errors.STORAGE.DIR_NOT_FOUND, dir)
+      };
+    }
 
-        const result = _.map(data.CommonPrefixes, commonPrefix =>
-          commonPrefix.Prefix!.substr(
-            normalisedPath.length,
-            commonPrefix.Prefix!.length - normalisedPath.length - 1
-          )
+    const result = _.map(data.CommonPrefixes, commonPrefix =>
+      commonPrefix.Prefix!.substr(
+        normalisedPath.length,
+        commonPrefix.Prefix!.length - normalisedPath.length - 1
+      )
+    );
+
+    return result;
+  };
+
+  const putDir = async (dirInput: string, dirOutput: string) => {
+    const paths = await getPaths(dirInput);
+
+    return Promise.all(
+      paths.files.map(file => {
+        const relativeFile = file.slice(dirInput.length);
+        const url = (dirOutput + relativeFile).replace(/\\/g, '/');
+        const serverPattern = /(\\|\/)server\.js/;
+        const dotFilePattern = /(\\|\/)\..+/;
+        const privateFilePatterns = [serverPattern, dotFilePattern];
+
+        return putFile(
+          file,
+          url,
+          privateFilePatterns.some(r => r.test(relativeFile))
         );
-
-        callback(null, result);
-      }
+      })
     );
   };
 
-  const putDir = (dirInput: string, dirOutput: string, callback: any) => {
-    nodeDir.paths(dirInput, (err, paths) => {
-      async.each(
-        paths.files,
-        (file, cb) => {
-          const relativeFile = file.substr(dirInput.length),
-            url = (dirOutput + relativeFile).replace(/\\/g, '/');
-
-          const serverPattern = /(\\|\/)server\.js/;
-          const dotFilePattern = /(\\|\/)\..+/;
-          const privateFilePatterns = [serverPattern, dotFilePattern];
-          putFile(
-            file,
-            url,
-            privateFilePatterns.some(r => r.test(relativeFile)),
-            cb
-          );
-        },
-        callback
-      );
-    });
-  };
-
-  const putFileContent = (
+  const putFileContent = async (
     fileContent: string | fs.ReadStream,
     fileName: string,
-    isPrivate: boolean,
-    callback: any
+    isPrivate: boolean
   ) => {
     const fileInfo = getFileInfo(fileName);
-    const obj = {
+
+    return getClient().putObject({
       Bucket: bucket,
       Key: fileName,
       Body: fileContent,
+      ContentType: fileInfo.mimeType,
+      ContentEncoding: fileInfo.gzip ? 'gzip' : undefined,
       ACL: isPrivate ? 'authenticated-read' : 'public-read',
       ServerSideEncryption: 'AES256',
       Expires: getNextYear()
-    };
-
-    if (fileInfo.mimeType) {
-      (obj as any).ContentType = fileInfo.mimeType;
-    }
-
-    if (fileInfo.gzip) {
-      (obj as any).ContentEncoding = 'gzip';
-    }
-
-    const upload = getClient().upload(obj);
-    upload.send(callback);
+    });
   };
 
-  const putFile = (
-    filePath: string,
-    fileName: string,
-    isPrivate: boolean,
-    callback: any
-  ) => {
-    try {
-      const stream = fs.createReadStream(filePath);
-      return putFileContent(stream, fileName, isPrivate, callback);
-    } catch (e) {
-      return callback(e);
-    }
+  const putFile = (filePath: string, fileName: string, isPrivate: boolean) => {
+    const stream = fs.createReadStream(filePath);
+
+    return putFileContent(stream, fileName, isPrivate);
   };
 
   return {
-    getFile: fromCallback(getFile),
-    getJson: fromCallback(getJson),
+    getFile,
+    getJson,
     getUrl,
-    listSubDirectories: fromCallback(listSubDirectories),
+    listSubDirectories,
     maxConcurrentRequests: 20,
-    putDir: fromCallback(putDir),
-    putFile: fromCallback(putFile),
-    putFileContent: fromCallback(putFileContent),
+    putDir,
+    putFile,
+    putFileContent,
     adapterType: 's3',
-    isValid,
-    getConfig
-  } as any;
+    isValid
+  };
 }
 
 module.exports = s3Adapter;
