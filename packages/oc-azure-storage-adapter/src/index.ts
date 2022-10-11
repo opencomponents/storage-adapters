@@ -1,18 +1,33 @@
-import async from 'async';
-import azure from 'azure-storage';
+import {
+  BlobServiceClient,
+  StorageSharedKeyCredential,
+  BlockBlobUploadOptions
+} from '@azure/storage-blob';
 import Cache from 'nice-cache';
 import format from 'stringformat';
 import fs from 'fs-extra';
-import nodeDir from 'node-dir';
-import _ from 'lodash';
-import stream from 'stream';
-import { fromCallback } from 'universalify';
+import nodeDir, { PathsResult } from 'node-dir';
+import { promisify } from 'util';
 
-import {
-  getFileInfo,
-  strings,
-  StorageAdapter
-} from 'oc-storage-adapters-utils';
+import { getFileInfo, strings } from 'oc-storage-adapters-utils';
+
+const getPaths: (path: string) => Promise<PathsResult> = promisify(
+  nodeDir.paths
+);
+
+// [Node.js only] A helper method used to read a Node.js readable stream into a Buffer
+async function streamToBuffer(readableStream: NodeJS.ReadableStream) {
+  return new Promise<Buffer>((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    readableStream.on('data', data => {
+      chunks.push(data instanceof Buffer ? data : Buffer.from(data));
+    });
+    readableStream.on('end', () => {
+      resolve(Buffer.concat(chunks));
+    });
+    readableStream.on('error', reject);
+  });
+}
 
 export interface AzureConfig {
   publicContainerName: string;
@@ -22,6 +37,27 @@ export interface AzureConfig {
   path: string;
   verbosity?: boolean;
   refreshInterval?: number;
+}
+
+export interface StorageAdapter {
+  adapterType: string;
+  getFile(filePath: string): Promise<string>;
+  getJson<T = unknown>(filePath: string, force?: boolean): Promise<T>;
+  getUrl: (componentName: string, version: string, fileName: string) => string;
+  listSubDirectories(dir: string): Promise<string[]>;
+  maxConcurrentRequests: number;
+  putDir(folderPath: string, filePath: string): Promise<unknown>;
+  putFile(
+    filePath: string,
+    fileName: string,
+    isPrivate: boolean
+  ): Promise<unknown>;
+  putFileContent(
+    data: unknown,
+    path: string,
+    isPrivate: boolean
+  ): Promise<unknown>;
+  isValid: () => boolean;
 }
 
 export default function azureAdapter(conf: AzureConfig): StorageAdapter {
@@ -42,302 +78,178 @@ export default function azureAdapter(conf: AzureConfig): StorageAdapter {
     refreshInterval: conf.refreshInterval
   });
 
-  const getClient = () =>
-    azure.createBlobService(conf.accountName, conf.accountKey);
+  const getClient = () => {
+    const sharedKeyCredential = new StorageSharedKeyCredential(
+      conf.accountName,
+      conf.accountKey
+    );
+    const blobServiceClient = new BlobServiceClient(
+      `https://${conf.accountName}.blob.core.windows.net`,
+      sharedKeyCredential
+    );
+    return blobServiceClient;
+  };
 
-  const getFile = (filePath: string, force: boolean, callback: any) => {
-    if (_.isFunction(force)) {
-      callback = force;
-      force = false;
-    }
-
-    const getFromAzure = (cb: any) => {
-      getClient().getBlobToText(
-        conf.privateContainerName,
-        filePath,
-        (err, fileContent) => {
-          if (err) {
-            if ((err as any).statusCode === 404) {
-              return cb({
-                code: strings.errors.STORAGE.FILE_NOT_FOUND_CODE,
-                msg: format(strings.errors.STORAGE.FILE_NOT_FOUND, filePath)
-              });
-            }
-
-            return cb(err);
-          }
-
-          cb(null, fileContent);
-        }
+  const getFile = async (filePath: string, force = false) => {
+    const getFromAzure = async () => {
+      const client = getClient();
+      const containerClient = client.getContainerClient(
+        conf.privateContainerName
       );
+      const blobClient = containerClient.getBlobClient(filePath);
+      try {
+        const downloadBlockBlobResponse = await blobClient.download();
+        const fileContent = (
+          await streamToBuffer(downloadBlockBlobResponse.readableStreamBody!)
+        ).toString();
+
+        return fileContent;
+      } catch (err) {
+        if ((err as any).statusCode === 404) {
+          throw {
+            code: strings.errors.STORAGE.FILE_NOT_FOUND_CODE,
+            msg: format(strings.errors.STORAGE.FILE_NOT_FOUND, filePath)
+          };
+        }
+        throw err;
+      }
     };
 
     if (force) {
-      return getFromAzure(callback);
+      return getFromAzure();
     }
 
     const cached = cache.get('azure-file', filePath);
 
     if (cached) {
-      return callback(null, cached);
+      return cached;
     }
 
-    getFromAzure((err: Error | null, result: any) => {
-      if (err) {
-        return callback(err);
-      }
-      cache.set('azure-file', filePath, result);
-      cache.sub('azure-file', filePath, getFromAzure);
-      callback(null, result);
-    });
+    const result = await getFromAzure();
+    cache.set('azure-file', filePath, result);
+    cache.sub('azure-file', filePath, getFromAzure);
+
+    return result;
   };
 
-  const getJson = (filePath: string, force: boolean, callback: any) => {
-    if (_.isFunction(force)) {
-      callback = force;
-      force = false;
+  const getJson = async (filePath: string, force = false) => {
+    const file = await getFile(filePath, force);
+
+    try {
+      return JSON.parse(file);
+    } catch (er) {
+      throw {
+        code: strings.errors.STORAGE.FILE_NOT_VALID_CODE,
+        msg: format(strings.errors.STORAGE.FILE_NOT_VALID, filePath)
+      };
     }
-
-    getFile(filePath, force, (err: Error | null, file: string) => {
-      if (err) {
-        return callback(err);
-      }
-
-      let parsed = null;
-      try {
-        parsed = JSON.parse(file);
-      } catch (er) {
-        return callback({
-          code: strings.errors.STORAGE.FILE_NOT_VALID_CODE,
-          msg: format(strings.errors.STORAGE.FILE_NOT_VALID, filePath)
-        });
-      }
-      callback(null, parsed);
-    });
   };
 
   const getUrl = (componentName: string, version: string, fileName: string) =>
     `${conf.path}${componentName}/${version}/${fileName}`;
 
-  const listSubDirectories = (dir: string, callback: any) => {
+  const listSubDirectories = async (dir: string) => {
     const normalisedPath =
       dir.lastIndexOf('/') === dir.length - 1 && dir.length > 0
         ? dir
         : `${dir}/`;
 
-    const listBlobsWithPrefix = (
-      azureClient: azure.BlobService,
-      containerName: string,
-      prefix: string,
-      continuationToken: azure.common.ContinuationToken,
-      callback: any
-    ) => {
-      azureClient.listBlobsSegmentedWithPrefix(
-        containerName,
-        normalisedPath,
-        continuationToken,
-        (err, result) => {
-          if (err) {
-            return callback(err);
-          }
+    const containerClient = getClient().getContainerClient(
+      conf.privateContainerName
+    );
+    const subDirectories = [];
 
-          if (!continuationToken && result.entries.length === 0) {
-            return callback({
-              code: strings.errors.STORAGE.DIR_NOT_FOUND_CODE,
-              msg: format(strings.errors.STORAGE.DIR_NOT_FOUND, dir)
-            });
-          }
+    for await (const item of containerClient.listBlobsByHierarchy('/', {
+      prefix: normalisedPath
+    })) {
+      if (item.kind === 'prefix') {
+        const subDirectory = item.name
+          .replace(normalisedPath, '')
+          .replace(/\/$/, '');
 
-          let allEntries = result.entries
-            .map(entry => {
-              const prefixLessName = entry.name.replace(prefix, '');
-              const indexOfLastSlash = prefixLessName.lastIndexOf('/');
-              if (indexOfLastSlash === -1) {
-                return null;
-              }
-
-              const filenamelessPath = prefixLessName.substr(
-                0,
-                indexOfLastSlash
-              );
-              const indexOfFirstSlash = filenamelessPath.indexOf('/');
-              if (indexOfFirstSlash === -1) {
-                return filenamelessPath;
-              }
-
-              return filenamelessPath.substr(0, indexOfFirstSlash);
-            })
-            .filter(entry => entry != null && entry.length > 0);
-          if (!result.continuationToken) {
-            return callback(null, allEntries);
-          }
-
-          listBlobsWithPrefix(
-            azureClient,
-            containerName,
-            prefix,
-            result.continuationToken,
-            (err: Error | null, entryNames: string[]) => {
-              if (err) {
-                return callback(err);
-              }
-
-              allEntries = allEntries.concat(entryNames);
-              callback(null, allEntries);
-            }
-          );
-        }
-      );
-    };
-
-    listBlobsWithPrefix(
-      getClient(),
-      conf.privateContainerName,
-      normalisedPath,
-      null as unknown as azure.common.ContinuationToken,
-      (err: Error | null, res: string[]) => {
-        if (err) return callback(err);
-        callback(null, _.uniq(res));
+        subDirectories.push(subDirectory);
       }
+    }
+
+    return subDirectories;
+  };
+
+  const putDir = async (dirInput: string, dirOutput: string) => {
+    const paths = await getPaths(dirInput);
+
+    return Promise.all(
+      paths.files.map((file: string) => {
+        const relativeFile = file.slice(dirInput.length);
+        const url = (dirOutput + relativeFile).replace(/\\/g, '/');
+
+        const serverPattern = /(\\|\/)server\.js/;
+        const dotFilePattern = /(\\|\/)\..+/;
+        const privateFilePatterns = [serverPattern, dotFilePattern];
+        return putFile(
+          file,
+          url,
+          privateFilePatterns.some(r => r.test(relativeFile))
+        );
+      })
     );
   };
 
-  const putDir = (dirInput: string, dirOutput: string, callback: any) => {
-    nodeDir.paths(dirInput, (err, paths) => {
-      async.each(
-        paths.files,
-        (file, cb) => {
-          const relativeFile = file.substr(dirInput.length),
-            url = (dirOutput + relativeFile).replace(/\\/g, '/');
-
-          const serverPattern = /(\\|\/)server\.js/;
-          const dotFilePattern = /(\\|\/)\..+/;
-          const privateFilePatterns = [serverPattern, dotFilePattern];
-          putFile(
-            file,
-            url,
-            privateFilePatterns.some(r => r.test(relativeFile)),
-            cb
-          );
-        },
-        callback
-      );
-    });
-  };
-
-  const putFileContent = (
+  const putFileContent = async (
     fileContent: string | fs.ReadStream,
     fileName: string,
-    isPrivate: boolean,
-    callback: any
+    isPrivate: boolean
   ) => {
-    try {
+    const content =
+      typeof fileContent === 'string'
+        ? Buffer.from(fileContent)
+        : await streamToBuffer(fileContent);
+
+    const uploadToAzureContainer = (containerName: string) => {
       const fileInfo = getFileInfo(fileName);
-      const contentSettings: azure.BlobService.CreateBlockBlobRequestOptions['contentSettings'] =
-        {
-          cacheControl: 'public, max-age=31556926'
-        };
+      const blobHTTPHeaders: BlockBlobUploadOptions['blobHTTPHeaders'] = {
+        blobCacheControl: 'public, max-age=31556926'
+      };
+
       if (fileInfo.mimeType) {
-        contentSettings.contentType = fileInfo.mimeType;
+        blobHTTPHeaders.blobContentType = fileInfo.mimeType;
       }
 
       if (fileInfo.gzip) {
-        contentSettings.contentEncoding = 'gzip';
+        blobHTTPHeaders.blobContentEncoding = 'gzip';
       }
 
-      const uploadToAzureContainer = (
-        rereadable: boolean,
-        containerName: string,
-        cb: any
-      ) => {
-        try {
-          if (fileContent instanceof stream.Stream) {
-            return fileContent.pipe(
-              getClient().createWriteStreamToBlockBlob(
-                containerName,
-                fileName,
-                { contentSettings: contentSettings },
-                (err, res) => {
-                  if (rereadable) {
-                    // I need  a fresh read stream and this is the only thing I came up with
-                    // very ugly and has poor performance, but works
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                    // @ts-ignore
-                    fileContent = getClient().createReadStream(
-                      containerName,
-                      fileName
-                    );
-                  }
+      const containerClient = getClient().getContainerClient(containerName);
+      const blockBlobClient = containerClient.getBlockBlobClient(fileName);
 
-                  cb(err, res);
-                }
-              )
-            );
-          }
+      return blockBlobClient.uploadData(content, {
+        blobHTTPHeaders
+      });
+    };
 
-          getClient().createBlockBlobFromText(
-            containerName,
-            fileName,
-            fileContent,
-            { contentSettings: contentSettings },
-            cb
-          );
-        } catch (err) {
-          return cb(err);
-        }
-      };
-
-      const makeReReadable = !isPrivate;
-      uploadToAzureContainer(
-        makeReReadable,
-        conf.privateContainerName,
-        (err: Error | null, result: any) => {
-          if (err) {
-            return callback(err);
-          }
-
-          if (!isPrivate) {
-            return uploadToAzureContainer(
-              false,
-              conf.publicContainerName,
-              callback
-            );
-          }
-
-          return callback(null, result);
-        }
-      );
-    } catch (err) {
-      return callback(err);
+    let result = await uploadToAzureContainer(conf.privateContainerName);
+    if (!isPrivate) {
+      result = await uploadToAzureContainer(conf.publicContainerName);
     }
+    return result;
   };
 
-  const putFile = (
-    filePath: string,
-    fileName: string,
-    isPrivate: boolean,
-    callback: any
-  ) => {
-    try {
-      const stream = fs.createReadStream(filePath);
-      putFileContent(stream, fileName, isPrivate, callback);
-    } catch (e) {
-      return callback(e);
-    }
+  const putFile = (filePath: string, fileName: string, isPrivate: boolean) => {
+    const stream = fs.createReadStream(filePath);
+    return putFileContent(stream, fileName, isPrivate);
   };
 
   return {
-    getFile: fromCallback(getFile),
-    getJson: fromCallback(getJson),
+    getFile,
+    getJson,
     getUrl,
-    listSubDirectories: fromCallback(listSubDirectories),
+    listSubDirectories,
     maxConcurrentRequests: 20,
-    putDir: fromCallback(putDir),
-    putFile: fromCallback(putFile),
-    putFileContent: fromCallback(putFileContent),
+    putDir,
+    putFile,
+    putFileContent,
     adapterType: 'azure-blob-storage',
     isValid
-  } as any;
+  };
 }
 
 module.exports = azureAdapter;
