@@ -1,4 +1,5 @@
-const awsSdk = jest.genMockFromModule('aws-sdk');
+const awsSdk = jest.genMockFromModule('@aws-sdk/client-s3');
+const stream = require('stream');
 const _config = { update: jest.fn() };
 
 jest.mock('fs-extra', () => {
@@ -31,7 +32,7 @@ let cachedTxt = 0;
 let cachedJson = 0;
 const _S3 = class {
   constructor() {
-    this.getObject = jest.fn((val, cb) => {
+    this.getObject = jest.fn(val => {
       cachedTxt++;
       cachedJson++;
       const contents = {
@@ -47,10 +48,14 @@ const _S3 = class {
       };
 
       const testResult = contents[val.Key];
-      cb(testResult.error || null, { Body: testResult.content });
+      if (testResult.error) throw testResult.error;
+
+      return {
+        Body: stream.Readable.from([Buffer.from(String(testResult.content))])
+      };
     });
 
-    this.listObjects = jest.fn((val, cb) => {
+    this.listObjects = jest.fn(val => {
       const CommonPrefixes =
         val.Bucket === 'my-empty-bucket'
           ? []
@@ -63,32 +68,27 @@ const _S3 = class {
               }
             ];
 
-      cb(null, { CommonPrefixes });
+      return Promise.resolve({ CommonPrefixes });
     });
 
-    this.upload = jest.fn(data => {
-      return {
-        send: jest.fn(cb => {
-          let error;
-          if (data && data.Key && data.Key.indexOf('error') >= 0) {
-            if (data.Key.indexOf('throw') >= 0) {
-              throw new Error('sorry');
-            }
+    this.putObject = jest.fn(data => {
+      if (data && data.Key && data.Key.indexOf('error') >= 0) {
+        if (data.Key.indexOf('throw') >= 0) {
+          throw new Error('sorry');
+        }
 
-            error = {
-              code: 1234,
-              message: 'an error message',
-              retryable: true,
-              statusCode: 500,
-              time: new Date(),
-              hostname: 'hostname',
-              region: 'us-west2'
-            };
-          }
+        throw {
+          code: 1234,
+          message: 'an error message',
+          retryable: true,
+          statusCode: 500,
+          time: new Date(),
+          hostname: 'hostname',
+          region: 'us-west2'
+        };
+      }
 
-          cb(error, data);
-        })
-      };
+      return data;
     });
   }
 };
