@@ -4,7 +4,6 @@ import {
   BlockBlobUploadOptions
 } from '@azure/storage-blob';
 import Cache from 'nice-cache';
-import format from 'stringformat';
 import fs from 'fs-extra';
 import nodeDir, { PathsResult } from 'node-dir';
 import { promisify } from 'util';
@@ -90,7 +89,7 @@ export default function azureAdapter(conf: AzureConfig): StorageAdapter {
         if ((err as any).statusCode === 404) {
           throw {
             code: strings.errors.STORAGE.FILE_NOT_FOUND_CODE,
-            msg: format(strings.errors.STORAGE.FILE_NOT_FOUND, filePath)
+            msg: strings.errors.STORAGE.FILE_NOT_FOUND(filePath)
           };
         }
         throw err;
@@ -122,7 +121,7 @@ export default function azureAdapter(conf: AzureConfig): StorageAdapter {
     } catch (er) {
       throw {
         code: strings.errors.STORAGE.FILE_NOT_VALID_CODE,
-        msg: format(strings.errors.STORAGE.FILE_NOT_VALID, filePath)
+        msg: strings.errors.STORAGE.FILE_NOT_VALID(filePath)
       };
     }
   };

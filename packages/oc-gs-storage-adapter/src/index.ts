@@ -1,5 +1,4 @@
 import Cache from 'nice-cache';
-import format from 'stringformat';
 import fs from 'fs-extra';
 import nodeDir, { PathsResult } from 'node-dir';
 import { Storage, UploadOptions } from '@google-cloud/storage';
@@ -62,7 +61,7 @@ export default function gsAdapter(conf: GsConfig): StorageAdapter {
         if ((err as any).code === 404) {
           throw {
             code: strings.errors.STORAGE.FILE_NOT_FOUND_CODE,
-            msg: format(strings.errors.STORAGE.FILE_NOT_FOUND, filePath)
+            msg: strings.errors.STORAGE.FILE_NOT_FOUND(filePath)
           };
         }
         throw {
@@ -96,7 +95,7 @@ export default function gsAdapter(conf: GsConfig): StorageAdapter {
     } catch (er) {
       throw {
         code: strings.errors.STORAGE.FILE_NOT_VALID_CODE,
-        msg: format(strings.errors.STORAGE.FILE_NOT_VALID, filePath)
+        msg: strings.errors.STORAGE.FILE_NOT_VALID(filePath)
       };
     }
   };
@@ -136,7 +135,7 @@ export default function gsAdapter(conf: GsConfig): StorageAdapter {
     } catch (err) {
       throw {
         code: strings.errors.STORAGE.DIR_NOT_FOUND_CODE,
-        msg: format(strings.errors.STORAGE.DIR_NOT_FOUND, dir)
+        msg: strings.errors.STORAGE.DIR_NOT_FOUND(dir)
       };
     }
   };

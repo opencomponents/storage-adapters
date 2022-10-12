@@ -37,7 +37,6 @@
     "nice-cache": "^0.0.5",
     "node-dir": "^0.1.17",
     "oc-storage-adapters-utils": "1.2.0",
-    "stringformat": "^0.0.5",
     "tmp": "0.1.0"
   },
   "devDependencies": {

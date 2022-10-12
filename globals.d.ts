@@ -13,9 +13,3 @@ declare module 'nice-cache' {
 
   export = Cache;
 }
-
-declare module 'stringformat' {
-  function format(...args: string[]): string;
-
-  export = format;
-}

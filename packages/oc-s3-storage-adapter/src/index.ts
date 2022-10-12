@@ -4,7 +4,6 @@ import {
   NodeHttpHandlerOptions
 } from '@aws-sdk/node-http-handler';
 import Cache from 'nice-cache';
-import format from 'stringformat';
 import fs from 'fs-extra';
 import nodeDir, { PathsResult } from 'node-dir';
 import _ from 'lodash';
@@ -26,8 +25,8 @@ const getPaths: (path: string) => Promise<PathsResult> = promisify(
 
 type RequireAllOrNone<ObjectType, KeysType extends keyof ObjectType = never> = (
   | Required<Pick<ObjectType, KeysType>> // Require all of the given keys.
-  | Partial<Record<KeysType, never>> // Require none of the given keys.
-) &
+  | Partial<Record<KeysType, never>>
+) & // Require none of the given keys.
   Omit<ObjectType, KeysType>; // The rest of the keys.
 
 export type S3Config = RequireAllOrNone<
@@ -123,7 +122,7 @@ export default function s3Adapter(conf: S3Config): StorageAdapter {
         throw (err as any).code === 'NoSuchKey'
           ? {
               code: strings.errors.STORAGE.FILE_NOT_FOUND_CODE,
-              msg: format(strings.errors.STORAGE.FILE_NOT_FOUND, filePath)
+              msg: strings.errors.STORAGE.FILE_NOT_FOUND(filePath)
             }
           : err;
       }
@@ -153,7 +152,7 @@ export default function s3Adapter(conf: S3Config): StorageAdapter {
     } catch (er) {
       throw {
         code: strings.errors.STORAGE.FILE_NOT_VALID_CODE,
-        msg: format(strings.errors.STORAGE.FILE_NOT_VALID, filePath)
+        msg: strings.errors.STORAGE.FILE_NOT_VALID(filePath)
       };
     }
   };
@@ -176,7 +175,7 @@ export default function s3Adapter(conf: S3Config): StorageAdapter {
     if (data.CommonPrefixes!.length === 0) {
       throw {
         code: strings.errors.STORAGE.DIR_NOT_FOUND_CODE,
-        msg: format(strings.errors.STORAGE.DIR_NOT_FOUND, dir)
+        msg: strings.errors.STORAGE.DIR_NOT_FOUND(dir)
       };
     }
 
