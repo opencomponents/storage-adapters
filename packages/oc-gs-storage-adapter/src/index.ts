@@ -4,7 +4,11 @@ import fs from 'fs-extra';
 import nodeDir, { PathsResult } from 'node-dir';
 import { Storage, UploadOptions } from '@google-cloud/storage';
 import tmp from 'tmp';
-import { getFileInfo, strings } from 'oc-storage-adapters-utils';
+import {
+  getFileInfo,
+  strings,
+  StorageAdapter
+} from 'oc-storage-adapters-utils';
 import { promisify } from 'util';
 
 const getPaths: (path: string) => Promise<PathsResult> = promisify(
@@ -18,27 +22,6 @@ export interface GsConfig {
   maxAge?: boolean;
   verbosity?: boolean;
   refreshInterval?: number;
-}
-
-export interface StorageAdapter {
-  adapterType: string;
-  getFile(filePath: string): Promise<string>;
-  getJson<T = unknown>(filePath: string, force?: boolean): Promise<T>;
-  getUrl: (componentName: string, version: string, fileName: string) => string;
-  listSubDirectories(dir: string): Promise<string[]>;
-  maxConcurrentRequests: number;
-  putDir(folderPath: string, filePath: string): Promise<unknown>;
-  putFile(
-    filePath: string,
-    fileName: string,
-    isPrivate: boolean
-  ): Promise<unknown>;
-  putFileContent(
-    data: unknown,
-    path: string,
-    isPrivate: boolean
-  ): Promise<unknown>;
-  isValid: () => boolean;
 }
 
 export default function gsAdapter(conf: GsConfig): StorageAdapter {
