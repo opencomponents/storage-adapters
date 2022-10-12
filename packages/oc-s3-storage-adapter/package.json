@@ -36,8 +36,7 @@
     "nice-cache": "^0.0.5",
     "node-dir": "^0.1.17",
     "oc-storage-adapters-utils": "1.2.0",
-    "stringformat": "^0.0.5",
-    "universalify": "^2.0.0"
+    "stringformat": "^0.0.5"
   },
   "devDependencies": {
     "@types/fs-extra": "9.0.13",
