@@ -1,4 +1,4 @@
-const getFileInfo = require('../lib/get-file-info').getFileInfo;
+import { getFileInfo } from '../src/get-file-info';
 
 const scenarios = [
   {

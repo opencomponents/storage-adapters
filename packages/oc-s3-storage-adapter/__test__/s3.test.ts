@@ -1,21 +1,24 @@
-const s3 = require('../');
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import s3 from '../src';
 
 //Mock Date functions
 const DATE_TO_USE = new Date('2017');
 const _Date = Date;
-global.Date = jest.fn(() => DATE_TO_USE);
+global.Date = jest.fn(() => DATE_TO_USE) as any;
 global.Date.UTC = _Date.UTC;
 global.Date.parse = _Date.parse;
 global.Date.now = _Date.now;
 
+const validOptions = {
+  bucket: 'test',
+  region: 'region-test',
+  key: 'test-key',
+  secret: 'test-secret',
+  path: '/'
+};
+
 test('should expose the correct methods', () => {
-  const options = {
-    bucket: 'test',
-    region: 'region-test',
-    key: 'test-key',
-    secret: 'test-secret'
-  };
-  const client = new s3(options);
+  const client = s3(validOptions);
 
   [
     { method: 'adapterType', value: 's3' },
@@ -29,21 +32,15 @@ test('should expose the correct methods', () => {
     { method: 'putFileContent', type: Function }
   ].forEach(api => {
     if (api.type === Function) {
-      expect(client[api.method]).toBeInstanceOf(api.type);
+      expect((client as any)[api.method]).toBeInstanceOf(api.type);
     } else {
-      expect(client[api.method]).toBe(api.value);
+      expect((client as any)[api.method]).toBe(api.value);
     }
   });
 });
 
 test('validate valid conf', () => {
-  const options = {
-    bucket: 'test',
-    region: 'region-test',
-    key: 'test-key',
-    secret: 'test-secret'
-  };
-  const client = new s3(options);
+  const client = s3(validOptions);
   expect(client.isValid()).toBe(true);
 });
 
@@ -53,7 +50,8 @@ test('validate missing bucket conf', () => {
     key: 'test-key',
     secret: 'test-secret'
   };
-  const client = new s3(options);
+  // @ts-expect-error Bad config
+  const client = s3(options);
   expect(client.isValid()).toBe(false);
 });
 
@@ -63,7 +61,8 @@ test('validate missing region conf', () => {
     key: 'test-key',
     secret: 'test-secret'
   };
-  const client = new s3(options);
+  // @ts-expect-error Bad config
+  const client = s3(options);
   expect(client.isValid()).toBe(false);
 });
 
@@ -73,7 +72,8 @@ test('validate missing key conf', () => {
     region: 'region-test',
     secret: 'test-secret'
   };
-  const client = new s3(options);
+  // @ts-expect-error Bad config
+  const client = s3(options);
   expect(client.isValid()).toBe(false);
 });
 
@@ -83,7 +83,8 @@ test('validate missing secret conf', () => {
     region: 'region-test',
     key: 'test-key'
   };
-  const client = new s3(options);
+  // @ts-expect-error Bad config
+  const client = s3(options);
   expect(client.isValid()).toBe(false);
 });
 
@@ -92,7 +93,8 @@ test('validate missing key/secret conf', () => {
     bucket: 'test',
     region: 'region-test'
   };
-  const client = new s3(missingOptions);
+  // @ts-expect-error Bad config
+  const client = s3(missingOptions);
   expect(client.isValid()).toBe(true);
 });
 
@@ -128,13 +130,7 @@ test('validate missing key/secret conf', () => {
   }
 ].forEach(scenario => {
   test(`test getFile ${scenario.src}`, async () => {
-    const options = {
-      bucket: 'test',
-      region: 'region-test',
-      key: 'test-key',
-      secret: 'test-secret'
-    };
-    const client = new s3(options);
+    const client = s3(validOptions);
 
     const operation = () =>
       client[scenario.src.match(/\.json$/) ? 'getJson' : 'getFile'](
@@ -151,14 +147,7 @@ test('validate missing key/secret conf', () => {
 });
 
 test('test getFile force mode', async () => {
-  const options = {
-    bucket: 'test',
-    region: 'region-test',
-    key: 'test-key',
-    secret: 'test-secret'
-  };
-
-  const client = new s3(options);
+  const client = s3(validOptions);
 
   const data1 = await client.getFile('path/to-mutable.txt', false);
   const data2 = await client.getFile('path/to-mutable.txt');
@@ -169,18 +158,17 @@ test('test getFile force mode', async () => {
 });
 
 test('test getJson force mode', async () => {
-  const options = {
-    bucket: 'test',
-    region: 'region-test',
-    key: 'test-key',
-    secret: 'test-secret'
+  const client = s3(validOptions);
+
+  const data1 = (await client.getJson('path/to-mutable.json', false)) as {
+    value: string;
   };
-
-  const client = new s3(options);
-
-  const data1 = await client.getJson('path/to-mutable.json', false);
-  const data2 = await client.getJson('path/to-mutable.json');
-  const data3 = await client.getJson('path/to-mutable.json', true);
+  const data2 = (await client.getJson('path/to-mutable.json')) as {
+    value: string;
+  };
+  const data3 = (await client.getJson('path/to-mutable.json', true)) as {
+    value: string;
+  };
 
   expect(data1.value).toBe(data2.value);
   expect(data3.value).not.toBe(data1.value);
@@ -192,7 +180,7 @@ test('test getJson force mode', async () => {
   { path: 'components/image/', expected: ['1.0.0', '1.0.1'] }
 ].forEach(scenario => {
   test(`test listObjects when bucket is not empty for folder ${scenario.path}`, async () => {
-    const client = new s3({ bucket: 'my-bucket' });
+    const client = s3(validOptions);
 
     const data = await client.listSubDirectories(scenario.path);
 
@@ -202,7 +190,7 @@ test('test getJson force mode', async () => {
 
 ['hello', 'path/'].forEach(scenario => {
   test(`test listObjects when bucket is empty for folder ${scenario}`, () => {
-    const client = new s3({ bucket: 'my-empty-bucket' });
+    const client = s3({ ...validOptions, bucket: 'my-empty-bucket' });
 
     return expect(client.listSubDirectories(scenario)).rejects.toEqual({
       code: 'dir_not_found',
@@ -212,12 +200,12 @@ test('test getJson force mode', async () => {
 });
 
 test('test getUrl ', () => {
-  const client = new s3({ path: '/' });
+  const client = s3(validOptions);
   expect(client.getUrl('test', '1.0.0', 'test.js')).toBe('/test/1.0.0/test.js');
 });
 
 test('test put dir (failure)', () => {
-  const client = new s3({ bucket: 'my-bucket' });
+  const client = s3(validOptions);
 
   return expect(
     client.putDir(
@@ -236,7 +224,7 @@ test('test put dir (failure)', () => {
 });
 
 test('test put dir (stream failure throwing)', () => {
-  const client = new s3({ bucket: 'my-bucket' });
+  const client = s3(validOptions);
 
   return expect(
     client.putDir(
@@ -247,75 +235,95 @@ test('test put dir (stream failure throwing)', () => {
 });
 
 test('test private putFileContent ', async () => {
-  const client = new s3({ bucket: 'my-bucket' });
+  const client = s3(validOptions);
 
-  const data = await client.putFileContent('words', 'filename.js', true);
+  const data = (await client.putFileContent('words', 'filename.js', true)) as {
+    ACL: string;
+  };
 
   expect(data.ACL).toBe('authenticated-read');
 });
 
 test('test public putFileContent ', async () => {
-  const client = new s3({ bucket: 'my-bucket' });
+  const client = s3(validOptions);
 
-  const data = await client.putFileContent('words', 'filename.gz', false);
+  const data = (await client.putFileContent('words', 'filename.gz', false)) as {
+    ACL: string;
+  };
 
   expect(data.ACL).toBe('public-read');
 });
 
 test('put a js file ', async () => {
-  const client = new s3({ bucket: 'my-bucket' });
+  const client = s3(validOptions);
 
-  const data = await client.putFile('../path', 'hello.js', false);
+  const data = (await client.putFile('../path', 'hello.js', false)) as {
+    ContentType: string;
+  };
 
   expect(data.ContentType).toBe('application/javascript');
 });
 
 test('put a gzipped js file ', async () => {
-  const client = new s3({ bucket: 'my-bucket' });
+  const client = s3(validOptions);
 
-  const data = await client.putFile('../path', 'hello.js.gz', false);
+  const data = (await client.putFile('../path', 'hello.js.gz', false)) as {
+    ContentType: string;
+    ContentEncoding: string;
+  };
 
   expect(data.ContentType).toBe('application/javascript');
   expect(data.ContentEncoding).toBe('gzip');
 });
 
 test('put a css file ', async () => {
-  const client = new s3({ bucket: 'my-bucket' });
+  const client = s3(validOptions);
 
-  const data = await client.putFile('../path', 'hello.css', false);
+  const data = (await client.putFile('../path', 'hello.css', false)) as {
+    ContentType: string;
+  };
 
   expect(data.ContentType).toBe('text/css');
 });
 
 test('put a gzipped css file ', async () => {
-  const client = new s3({ bucket: 'my-bucket' });
+  const client = s3(validOptions);
 
-  const data = await client.putFile('../path', 'hello.css.gz', false);
+  const data = (await client.putFile('../path', 'hello.css.gz', false)) as {
+    ContentType: string;
+    ContentEncoding: string;
+  };
 
   expect(data.ContentType).toBe('text/css');
   expect(data.ContentEncoding).toBe('gzip');
 });
 
 test('put a jpg file ', async () => {
-  const client = new s3({ bucket: 'my-bucket' });
+  const client = s3(validOptions);
 
-  const data = await client.putFile('../path', 'hello.jpg', false);
+  const data = (await client.putFile('../path', 'hello.jpg', false)) as {
+    ContentType: string;
+  };
 
   expect(data.ContentType).toBe('image/jpeg');
 });
 
 test('put a gif file ', async () => {
-  const client = new s3({ bucket: 'my-bucket' });
+  const client = s3(validOptions);
 
-  const data = await client.putFile('../path', 'hello.gif', false);
+  const data = (await client.putFile('../path', 'hello.gif', false)) as {
+    ContentType: string;
+  };
 
   expect(data.ContentType).toBe('image/gif');
 });
 
 test('put a png file ', async () => {
-  const client = new s3({ bucket: 'my-bucket' });
+  const client = s3(validOptions);
 
-  const data = await client.putFile('../path', 'hello.png', false);
+  const data = (await client.putFile('../path', 'hello.png', false)) as {
+    ContentType: string;
+  };
 
   expect(data.ContentType).toBe('image/png');
 });

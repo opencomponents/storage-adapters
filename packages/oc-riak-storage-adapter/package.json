@@ -2,11 +2,14 @@
   "name": "oc-riak-storage-adapter",
   "version": "0.1.1",
   "description": "RiakCS storage adapter for OC",
-  "main": "index.js",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "tsc": "tsc",
+    "test": "echo \"Error: run tests from root\" && exit 1"
+  },
   "files": [
-    "index.js",
-    "LICENSE",
-    "README.md"
+    "lib"
   ],
   "repository": {
     "type": "git",

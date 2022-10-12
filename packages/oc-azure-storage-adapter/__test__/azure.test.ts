@@ -1,20 +1,25 @@
-const Readable = require('stream').Readable;
-const azure = require('../lib');
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import stream from 'stream';
+import azure from '../src';
 
 //Mock Date functions
 const DATE_TO_USE = new Date('2017');
 const _Date = Date;
-global.Date = jest.fn(() => DATE_TO_USE);
+global.Date = jest.fn(() => DATE_TO_USE) as any;
 global.Date.UTC = _Date.UTC;
 global.Date.parse = _Date.parse;
 global.Date.now = _Date.now;
 
+const validOptions = {
+  publicContainerName: 'pubcon',
+  privateContainerName: 'privcon',
+  accountName: 'name',
+  accountKey: 'key',
+  path: '/'
+};
+
 test('should expose the correct methods', () => {
-  const options = {
-    publicContainerName: 'pubcon',
-    privateContainerName: 'privcon'
-  };
-  const client = new azure(options);
+  const client = azure(validOptions);
 
   [
     { method: 'adapterType', value: 'azure-blob-storage' },
@@ -28,9 +33,9 @@ test('should expose the correct methods', () => {
     { method: 'putFileContent', type: Function }
   ].forEach(api => {
     if (api.type === Function) {
-      expect(client[api.method]).toBeInstanceOf(api.type);
+      expect((client as any)[api.method]).toBeInstanceOf(api.type);
     } else {
-      expect(client[api.method]).toBe(api.value);
+      expect((client as any)[api.method]).toBe(api.value);
     }
   });
 });
@@ -38,20 +43,16 @@ test('should expose the correct methods', () => {
 test('validate valid conf without credentials', () => {
   const options = {
     publicContainerName: 'pubcon',
-    privateContainerName: 'privcon'
+    privateContainerName: 'privcon',
+    path: 'path'
   };
-  const client = new azure(options);
-  expect(client.isValid()).toBe(true);
+  // @ts-expect-error Bad config
+  const client = azure(options);
+  expect(client.isValid()).toBe(false);
 });
 
 test('validate valid conf with credentials', () => {
-  const options = {
-    publicContainerName: 'pubcon',
-    privateContainerName: 'privcon',
-    accountName: 'acc',
-    accountKey: 'accKey'
-  };
-  const client = new azure(options);
+  const client = azure(validOptions);
   expect(client.isValid()).toBe(true);
 });
 
@@ -59,7 +60,8 @@ test('validate missing public container', () => {
   const options = {
     privateContainerName: 'privcon'
   };
-  const client = new azure(options);
+  // @ts-expect-error Bad config
+  const client = azure(options);
   expect(client.isValid()).toBe(false);
 });
 
@@ -67,7 +69,8 @@ test('validate missing private container', () => {
   const options = {
     publicContainerName: 'pubcon'
   };
-  const client = new azure(options);
+  // @ts-expect-error Bad config
+  const client = azure(options);
   expect(client.isValid()).toBe(false);
 });
 
@@ -77,7 +80,8 @@ test('validate partial credentials, no key', () => {
     privateContainerName: 'privcon',
     accountName: 'acc'
   };
-  const client = new azure(options);
+  // @ts-expect-error Bad config
+  const client = azure(options);
   expect(client.isValid()).toBe(false);
 });
 
@@ -87,7 +91,8 @@ test('validate partial credentials, no name', () => {
     privateContainerName: 'privcon',
     accountKey: 'accKey'
   };
-  const client = new azure(options);
+  // @ts-expect-error Bad config
+  const client = azure(options);
   expect(client.isValid()).toBe(false);
 });
 
@@ -123,11 +128,7 @@ test('validate partial credentials, no name', () => {
   }
 ].forEach(scenario => {
   test(`test getFile ${scenario.src}`, async () => {
-    const options = {
-      publicContainerName: 'pubcon',
-      privateContainerName: 'privcon'
-    };
-    const client = new azure(options);
+    const client = azure(validOptions);
     const operation = () =>
       client[scenario.src.match(/\.json$/) ? 'getJson' : 'getFile'](
         scenario.src,
@@ -143,11 +144,7 @@ test('validate partial credentials, no name', () => {
 });
 
 test('test getFile force mode', async () => {
-  const options = {
-    publicContainerName: 'pubcon',
-    privateContainerName: 'privcon'
-  };
-  const client = new azure(options);
+  const client = azure(validOptions);
 
   const data1 = await client.getFile('path/to-mutable.txt', false);
   const data2 = await client.getFile('path/to-mutable.txt');
@@ -158,15 +155,17 @@ test('test getFile force mode', async () => {
 });
 
 test('test getJson force mode', async () => {
-  const options = {
-    publicContainerName: 'pubcon',
-    privateContainerName: 'privcon'
-  };
-  const client = new azure(options);
+  const client = azure(validOptions);
 
-  const data1 = await client.getJson('path/to-mutable.json', false);
-  const data2 = await client.getJson('path/to-mutable.json');
-  const data3 = await client.getJson('path/to-mutable.json', true);
+  const data1: { value: string } = await client.getJson(
+    'path/to-mutable.json',
+    false
+  );
+  const data2: { value: string } = await client.getJson('path/to-mutable.json');
+  const data3: { value: string } = await client.getJson(
+    'path/to-mutable.json',
+    true
+  );
 
   expect(data1.value).toBe(data2.value);
   expect(data3.value).not.toBe(data1.value);
@@ -179,10 +178,7 @@ test('test getJson force mode', async () => {
   { path: 'components/image/1.0.0/', expected: [] }
 ].forEach(scenario => {
   test(`test listObjects when bucket is not empty for folder ${scenario.path}`, async () => {
-    const client = new azure({
-      publicContainerName: 'pubcon',
-      privateContainerName: 'privcon'
-    });
+    const client = azure(validOptions);
 
     const data = await client.listSubDirectories(scenario.path);
 
@@ -192,10 +188,7 @@ test('test getJson force mode', async () => {
 
 ['hello', 'path/'].forEach(scenario => {
   test(`test listObjects when bucket is empty for folder ${scenario}`, async () => {
-    const client = new azure({
-      publicContainerName: 'my-empty-container',
-      privateContainerName: 'my-empty-container'
-    });
+    const client = azure(validOptions);
 
     const data = await client.listSubDirectories(scenario);
 
@@ -204,15 +197,12 @@ test('test getJson force mode', async () => {
 });
 
 test('test getUrl ', () => {
-  const client = new azure({ path: '/' });
+  const client = azure(validOptions);
   expect(client.getUrl('test', '1.0.0', 'test.js')).toBe('/test/1.0.0/test.js');
 });
 
 test('test put dir (failure)', () => {
-  const client = new azure({
-    publicContainerName: 'pubcon',
-    privateContainerName: 'privcon'
-  });
+  const client = azure(validOptions);
 
   return expect(
     client.putDir(
@@ -223,10 +213,7 @@ test('test put dir (failure)', () => {
 });
 
 test('test put dir (stream failure throwing)', () => {
-  const client = new azure({
-    publicContainerName: 'pubcon',
-    privateContainerName: 'privcon'
-  });
+  const client = azure(validOptions);
 
   return expect(
     client.putDir(
@@ -237,28 +224,30 @@ test('test put dir (stream failure throwing)', () => {
 });
 
 test('test private putFileContent', async () => {
-  const client = new azure({
-    publicContainerName: 'pubcon',
-    privateContainerName: 'privcon'
-  });
+  const client = azure(validOptions);
 
-  const result = await client.putFileContent('words', 'filename.js', true);
+  const result = (await client.putFileContent(
+    'words',
+    'filename.js',
+    true
+  )) as any;
 
   expect(result.container).toBe('privcon');
 });
 
 test('test private putFileContent stream', async () => {
-  const client = new azure({
-    publicContainerName: 'pubcon',
-    privateContainerName: 'privcon'
-  });
+  const client = azure(validOptions);
 
   const fileContent = 'words';
-  const fileStream = new Readable();
+  const fileStream = new stream.Readable();
   fileStream.push(fileContent);
   fileStream.push(null);
 
-  const result = await client.putFileContent(fileStream, 'filename.js', true);
+  const result = (await client.putFileContent(
+    fileStream,
+    'filename.js',
+    true
+  )) as any;
 
   expect(result.container).toBe('privcon');
   expect(result.lengthWritten).toBe(fileContent.length);
@@ -268,38 +257,37 @@ test('test private putFileContent stream', async () => {
 });
 
 test('test public putFileContent', async () => {
-  const client = new azure({
-    publicContainerName: 'pubcon',
-    privateContainerName: 'privcon'
-  });
+  const client = azure(validOptions);
 
-  const result = await client.putFileContent('words', 'filename.gz', false);
+  const result = (await client.putFileContent(
+    'words',
+    'filename.gz',
+    false
+  )) as any;
 
   expect(result.container).toBe('pubcon');
 });
 
 test('test public putFileContent stream', async () => {
-  const client = new azure({
-    publicContainerName: 'pubcon',
-    privateContainerName: 'privcon'
-  });
+  const client = azure(validOptions);
 
   const fileContent = 'words';
-  const fileStream = new Readable();
+  const fileStream = new stream.Readable();
   fileStream.push(fileContent);
   fileStream.push(null);
 
-  const result = await client.putFileContent(fileStream, 'filename.js', false);
+  const result = (await client.putFileContent(
+    fileStream,
+    'filename.js',
+    false
+  )) as any;
 
   expect(result.container).toBe('pubcon');
   expect(result.lengthWritten).toBe(fileContent.length);
 });
 
 test('put a js file ', async () => {
-  const client = new azure({
-    publicContainerName: 'pubcon',
-    privateContainerName: 'privcon'
-  });
+  const client = azure(validOptions);
 
   await expect(client.putFile('../path', 'hello.js', false)).resolves.toEqual({
     container: 'pubcon',

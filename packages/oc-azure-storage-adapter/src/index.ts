@@ -47,8 +47,8 @@ export default function azureAdapter(conf: AzureConfig): StorageAdapter {
     if (
       !conf.publicContainerName ||
       !conf.privateContainerName ||
-      (conf.accountName && !conf.accountKey) ||
-      (!conf.accountName && conf.accountKey)
+      !conf.accountName ||
+      !conf.accountKey
     ) {
       return false;
     }
