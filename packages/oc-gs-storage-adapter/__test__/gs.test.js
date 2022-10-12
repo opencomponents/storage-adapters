@@ -1,4 +1,4 @@
-'use strict';
+const { fromPromise } = require('universalify');
 const gs = require('../lib');
 
 //Mock Date functions
@@ -106,7 +106,7 @@ test('validate missing path conf', () => {
       path: 'somepath'
     };
     const client = new gs(options);
-    client[scenario.src.match(/\.json$/) ? 'getJson' : 'getFile'](
+    fromPromise(client[scenario.src.match(/\.json$/) ? 'getJson' : 'getFile'])(
       scenario.src,
       false,
       (err, data) => {
@@ -118,29 +118,24 @@ test('validate missing path conf', () => {
   });
 });
 
-test('test getFile force mode', done => {
+test('test getFile force mode', async () => {
   const options = {
     bucket: 'test',
     projectId: '12345',
     path: 'somepath'
   };
   const client = new gs(options);
+  const getFile = fromPromise(client.getFile);
 
-  client.getFile('path/to-mutable.txt', false, (err1, data1) => {
-    client.getFile('path/to-mutable.txt', (err2, data2) => {
-      client.getFile('path/to-mutable.txt', true, (err3, data3) => {
-        expect(err1).toBeNull;
-        expect(err2).toBeNull;
-        expect(err3).toBeNull;
-        expect(data1).toBe(data2);
-        expect(data3).not.toBe(data1);
-        done();
-      });
-    });
-  });
+  const data1 = await getFile('path/to-mutable.txt', false);
+  const data2 = await getFile('path/to-mutable.txt');
+  const data3 = await getFile('path/to-mutable.txt', true);
+
+  expect(data1).toBe(data2);
+  expect(data3).not.toBe(data1);
 });
 
-test('test getJson force mode', done => {
+test('test getJson force mode', async () => {
   const options = {
     bucket: 'test',
     projectId: '12345',
@@ -148,19 +143,14 @@ test('test getJson force mode', done => {
   };
 
   const client = new gs(options);
+  const getJson = fromPromise(client.getJson);
 
-  client.getJson('path/to-mutable.json', false, (err1, data1) => {
-    client.getJson('path/to-mutable.json', (err2, data2) => {
-      client.getJson('path/to-mutable.json', true, (err3, data3) => {
-        expect(err1).toBeNull;
-        expect(err2).toBeNull;
-        expect(err3).toBeNull;
-        expect(data1.value).toBe(data2.value);
-        expect(data3.value).not.toBe(data1.value);
-        done();
-      });
-    });
-  });
+  const data1 = await getJson('path/to-mutable.json', false);
+  const data2 = await getJson('path/to-mutable.json');
+  const data3 = await getJson('path/to-mutable.json', true);
+
+  expect(data1.value).toBe(data2.value);
+  expect(data3.value).not.toBe(data1.value);
 });
 
 [
@@ -172,7 +162,7 @@ test('test getJson force mode', done => {
   test(`test listSubDirectories when bucket is not empty for folder ${scenario.path}`, done => {
     const client = new gs({ bucket: 'my-bucket' });
 
-    client.listSubDirectories(scenario.path, (err, data) => {
+    fromPromise(client.listSubDirectories)(scenario.path, (err, data) => {
       expect(err).toBeNull();
       expect(data).toEqual(scenario.expected);
       done();
@@ -184,7 +174,7 @@ test('test getJson force mode', done => {
   test(`test listSubDirectories when bucket is empty for folder ${scenario}`, done => {
     const client = new gs({ bucket: 'my-empty-bucket' });
 
-    client.listSubDirectories(scenario, (err, data) => {
+    fromPromise(client.listSubDirectories)(scenario, (err, data) => {
       expect(data).toBeUndefined();
       expect(err.code).toBe('dir_not_found');
       expect(err.msg).toBe(`Directory "${scenario}" not found`);
@@ -200,7 +190,7 @@ test('test getUrl ', () => {
 
 test('test put dir (failure)', done => {
   const client = new gs({ bucket: 'my-bucket' });
-  client.putDir(
+  fromPromise(client.putDir)(
     '/absolute-path-to-dir',
     'components\\componentName-error\\1.0.0',
     (err, res) => {
@@ -213,7 +203,7 @@ test('test put dir (failure)', done => {
 
 test('test put dir ', done => {
   const client = new gs({ bucket: 'my-bucket' });
-  client.putDir(
+  fromPromise(client.putDir)(
     '/absolute-path-to-dir',
     'components\\componentName\\1.0.0',
     (err, res) => {
@@ -226,27 +216,37 @@ test('test put dir ', done => {
 
 test('test private putFileContent ', done => {
   const client = new gs({ bucket: 'my-bucket' });
-  client.putFileContent('words', 'filename.js', true, (err, data) => {
-    expect(err).toBeNull();
-    expect(data.ACL).toBe('authenticated-read');
-    done();
-  });
+  fromPromise(client.putFileContent)(
+    'words',
+    'filename.js',
+    true,
+    (err, data) => {
+      expect(err).toBeNull();
+      expect(data.ACL).toBe('authenticated-read');
+      done();
+    }
+  );
 });
 
 test('test public putFileContent ', done => {
   const client = new gs({ bucket: 'my-bucket' });
 
-  client.putFileContent('words', 'filename.gz', false, (err, data) => {
-    expect(err).toBeNull();
-    expect(data.ACL).toBe('public-read');
-    done();
-  });
+  fromPromise(client.putFileContent)(
+    'words',
+    'filename.gz',
+    false,
+    (err, data) => {
+      expect(err).toBeNull();
+      expect(data.ACL).toBe('public-read');
+      done();
+    }
+  );
 });
 
 test('put a js file ', done => {
   const client = new gs({ bucket: 'my-bucket' });
 
-  client.putFile('../path', 'hello.js', false, (err, data) => {
+  fromPromise(client.putFile)('../path', 'hello.js', false, (err, data) => {
     expect(data.ContentType).toBe('application/javascript');
     done();
   });
@@ -255,7 +255,7 @@ test('put a js file ', done => {
 test('put a gzipped js file ', done => {
   const client = new gs({ bucket: 'my-bucket' });
 
-  client.putFile('../path', 'hello.js.gz', false, (err, data) => {
+  fromPromise(client.putFile)('../path', 'hello.js.gz', false, (err, data) => {
     expect(data.ContentType).toBe('application/javascript');
     expect(data.ContentEncoding).toBe('gzip');
     done();
@@ -265,7 +265,7 @@ test('put a gzipped js file ', done => {
 test('put a css file ', done => {
   const client = new gs({ bucket: 'my-bucket' });
 
-  client.putFile('../path', 'hello.css', false, (err, data) => {
+  fromPromise(client.putFile)('../path', 'hello.css', false, (err, data) => {
     expect(data.ContentType).toBe('text/css');
     done();
   });
@@ -274,7 +274,7 @@ test('put a css file ', done => {
 test('put a gzipped css file ', done => {
   const client = new gs({ bucket: 'my-bucket' });
 
-  client.putFile('../path', 'hello.css.gz', false, (err, data) => {
+  fromPromise(client.putFile)('../path', 'hello.css.gz', false, (err, data) => {
     expect(data.ContentType).toBe('text/css');
     expect(data.ContentEncoding).toBe('gzip');
     done();
@@ -284,7 +284,7 @@ test('put a gzipped css file ', done => {
 test('put a jpg file ', done => {
   const client = new gs({ bucket: 'my-bucket' });
 
-  client.putFile('../path', 'hello.jpg', false, (err, data) => {
+  fromPromise(client.putFile)('../path', 'hello.jpg', false, (err, data) => {
     expect(data.ContentType).toBe('image/jpeg');
     done();
   });
@@ -293,7 +293,7 @@ test('put a jpg file ', done => {
 test('put a gif file ', done => {
   const client = new gs({ bucket: 'my-bucket' });
 
-  client.putFile('../path', 'hello.gif', false, (err, data) => {
+  fromPromise(client.putFile)('../path', 'hello.gif', false, (err, data) => {
     expect(data.ContentType).toBe('image/gif');
     done();
   });
@@ -302,7 +302,7 @@ test('put a gif file ', done => {
 test('put a png file ', done => {
   const client = new gs({ bucket: 'my-bucket' });
 
-  client.putFile('../path', 'hello.png', false, (err, data) => {
+  fromPromise(client.putFile)('../path', 'hello.png', false, (err, data) => {
     expect(data.ContentType).toBe('image/png');
     done();
   });

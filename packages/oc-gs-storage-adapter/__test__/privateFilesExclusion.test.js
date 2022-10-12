@@ -1,4 +1,5 @@
 const gs = require('../lib');
+const { fromPromise } = require('universalify');
 
 jest.mock('node-dir', () => {
   return {
@@ -43,22 +44,16 @@ test('put directory recognizes server.js and .env to be private', done => {
   };
   const client = new gs(options);
 
-  client.putDir('.', '.', (_, mockResult) => {
-    const separators = ['\\', '/'];
-    for (let separator of separators) {
-      expect(mockResult[`.${separator}server.js`].res.ACL).toBe(
-        'authenticated-read'
-      );
-      expect(mockResult[`.${separator}.env`].res.ACL).toBe(
-        'authenticated-read'
-      );
-      expect(mockResult[`.${separator}package.json`].res.ACL).toBe(
-        'public-read'
-      );
-      expect(mockResult[`.${separator}template.js`].res.ACL).toBe(
-        'public-read'
-      );
-    }
+  fromPromise(client.putDir)('.', '.', (_, mockResult) => {
+    const serverMock = mockResult.find(x => x.Key === `./server.js`);
+    const envMock = mockResult.find(x => x.Key === './.env');
+    const packageMock = mockResult.find(x => x.Key === './package.json');
+    const templateMock = mockResult.find(x => x.Key === './template.js');
+
+    expect(serverMock.ACL).toBe('authenticated-read');
+    expect(envMock.ACL).toBe('authenticated-read');
+    expect(packageMock.ACL).toBe('public-read');
+    expect(templateMock.ACL).toBe('public-read');
 
     done();
   });

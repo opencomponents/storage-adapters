@@ -1,17 +1,15 @@
-import async from 'async';
 import Cache from 'nice-cache';
 import format from 'stringformat';
 import fs from 'fs-extra';
-import nodeDir from 'node-dir';
-import _ from 'lodash';
+import nodeDir, { PathsResult } from 'node-dir';
 import { Storage, UploadOptions } from '@google-cloud/storage';
 import tmp from 'tmp';
-import { fromCallback } from 'universalify';
-import {
-  getFileInfo,
-  StorageAdapter,
-  strings
-} from 'oc-storage-adapters-utils';
+import { getFileInfo, strings } from 'oc-storage-adapters-utils';
+import { promisify } from 'util';
+
+const getPaths: (path: string) => Promise<PathsResult> = promisify(
+  nodeDir.paths
+);
 
 export interface GsConfig {
   bucket: string;
@@ -20,6 +18,27 @@ export interface GsConfig {
   maxAge?: boolean;
   verbosity?: boolean;
   refreshInterval?: number;
+}
+
+export interface StorageAdapter {
+  adapterType: string;
+  getFile(filePath: string): Promise<string>;
+  getJson<T = unknown>(filePath: string, force?: boolean): Promise<T>;
+  getUrl: (componentName: string, version: string, fileName: string) => string;
+  listSubDirectories(dir: string): Promise<string[]>;
+  maxConcurrentRequests: number;
+  putDir(folderPath: string, filePath: string): Promise<unknown>;
+  putFile(
+    filePath: string,
+    fileName: string,
+    isPrivate: boolean
+  ): Promise<unknown>;
+  putFileContent(
+    data: unknown,
+    path: string,
+    isPrivate: boolean
+  ): Promise<unknown>;
+  isValid: () => boolean;
 }
 
 export default function gsAdapter(conf: GsConfig): StorageAdapter {
@@ -47,161 +66,148 @@ export default function gsAdapter(conf: GsConfig): StorageAdapter {
     refreshInterval: conf.refreshInterval
   });
 
-  const getFile = (filePath: string, force: boolean, callback: any) => {
-    if (_.isFunction(force)) {
-      callback = force;
-      force = false;
-    }
+  const getFile = async (filePath: string, force = false) => {
+    const getFromGs = async () => {
+      try {
+        const data = await getClient()
+          .bucket(bucketName)
+          .file(filePath)
+          .download();
 
-    const getFromGs = (cb: any) => {
-      getClient()
-        .bucket(bucketName)
-        .file(filePath)
-        .download()
-        .then(data => {
-          cb(null, data.toString());
-        })
-        .catch(err =>
-          callback(
-            err.code === 404
-              ? {
-                  code: strings.errors.STORAGE.FILE_NOT_FOUND_CODE,
-                  msg: format(strings.errors.STORAGE.FILE_NOT_FOUND, filePath)
-                }
-              : err
-          )
-        );
+        return data.toString();
+      } catch (err) {
+        if ((err as any).code === 404) {
+          throw {
+            code: strings.errors.STORAGE.FILE_NOT_FOUND_CODE,
+            msg: format(strings.errors.STORAGE.FILE_NOT_FOUND, filePath)
+          };
+        }
+        throw {
+          code: (err as any).code,
+          msg: (err as any).message || (err as any).msg
+        };
+      }
     };
 
     if (force) {
-      return getFromGs(callback);
+      return getFromGs();
     }
 
     const cached = cache.get('gs-file', filePath);
-
     if (cached) {
-      return callback(null, cached);
+      return cached;
     }
 
-    getFromGs((err: Error | null, result: any) => {
-      if (err) {
-        return callback({ code: (err as any).code, msg: err.message });
-      }
-      cache.set('gs-file', filePath, result);
-      cache.sub('gs-file', filePath, getFromGs);
-      callback(null, result);
-    });
+    const result = await getFromGs();
+    cache.set('gs-file', filePath, result);
+    cache.sub('gs-file', filePath, getFromGs);
+
+    return result;
   };
 
-  const getJson = (filePath: string, force: boolean, callback: any) => {
-    if (_.isFunction(force)) {
-      callback = force;
-      force = false;
-    }
-    getFile(filePath, force, (err: Error | null, file: string) => {
-      if (err) {
-        return callback(err);
-      }
+  const getJson = async (filePath: string, force = false) => {
+    const file = await getFile(filePath, force);
 
-      try {
-        callback(null, JSON.parse(file));
-      } catch (er) {
-        return callback({
-          code: strings.errors.STORAGE.FILE_NOT_VALID_CODE,
-          msg: format(strings.errors.STORAGE.FILE_NOT_VALID, filePath)
-        });
-      }
-    });
+    try {
+      return JSON.parse(file);
+    } catch (er) {
+      throw {
+        code: strings.errors.STORAGE.FILE_NOT_VALID_CODE,
+        msg: format(strings.errors.STORAGE.FILE_NOT_VALID, filePath)
+      };
+    }
   };
 
   const getUrl = (componentName: string, version: string, fileName: string) =>
     `${conf.path}${componentName}/${version}/${fileName}`;
 
-  const listSubDirectories = (dir: string, callback: any) => {
+  const listSubDirectories = async (dir: string) => {
     const normalisedPath =
       dir.lastIndexOf('/') === dir.length - 1 && dir.length > 0
         ? dir
         : dir + '/';
+
     const options = {
       prefix: normalisedPath
     };
-    getClient()
-      .bucket(bucketName)
-      .getFiles(options)
-      .then(results => {
-        const files = results[0];
-        if (files.length === 0) {
-          throw 'no files';
-        }
 
-        const result = files
-          //remove prefix
-          .map(file => file.name.replace(normalisedPath, ''))
-          // only get files that aren't in root directory
-          .filter(file => file.split('/').length > 1)
-          //get directory names
-          .map(file => file.split('/')[0])
-          // reduce to unique directories
-          .filter((item, i, ar) => ar.indexOf(item) === i);
-        callback(null, result);
-      })
-      .catch(err =>
-        callback({
-          code: strings.errors.STORAGE.DIR_NOT_FOUND_CODE,
-          msg: format(strings.errors.STORAGE.DIR_NOT_FOUND, dir)
-        })
-      );
-  };
+    try {
+      const results = await getClient().bucket(bucketName).getFiles(options);
 
-  const putDir = (dirInput: string, dirOutput: string, callback: any) => {
-    nodeDir.paths(dirInput, (err, paths) => {
-      if (err) {
-        return callback(err, undefined);
+      const files = results[0];
+      if (files.length === 0) {
+        throw 'no files';
       }
-      async.each(
-        paths.files,
-        (file, cb) => {
-          const relativeFile = file.substr(dirInput.length);
-          const url = (dirOutput + relativeFile).replace(/\\/g, '/');
-          const serverPattern = /(\\|\/)server\.js/;
-          const dotFilePattern = /(\\|\/)\..+/;
-          const privateFilePatterns = [serverPattern, dotFilePattern];
-          putFile(
-            file,
-            url,
-            privateFilePatterns.some(r => r.test(relativeFile)),
-            cb
-          );
-        },
-        callback
-      );
-    });
+
+      const result = files
+        //remove prefix
+        .map(file => file.name.replace(normalisedPath, ''))
+        // only get files that aren't in root directory
+        .filter(file => file.split('/').length > 1)
+        //get directory names
+        .map(file => file.split('/')[0])
+        // reduce to unique directories
+        .filter((item, i, ar) => ar.indexOf(item) === i);
+
+      return result;
+    } catch (err) {
+      throw {
+        code: strings.errors.STORAGE.DIR_NOT_FOUND_CODE,
+        msg: format(strings.errors.STORAGE.DIR_NOT_FOUND, dir)
+      };
+    }
   };
 
-  const putFileContent = (
+  const putDir = async (dirInput: string, dirOutput: string) => {
+    const paths = await getPaths(dirInput);
+
+    return Promise.all(
+      paths.files.map((file: string) => {
+        const relativeFile = file.slice(dirInput.length);
+        const url = (dirOutput + relativeFile).replace(/\\/g, '/');
+
+        const serverPattern = /(\\|\/)server\.js/;
+        const dotFilePattern = /(\\|\/)\..+/;
+        const privateFilePatterns = [serverPattern, dotFilePattern];
+        return putFile(
+          file,
+          url,
+          privateFilePatterns.some(r => r.test(relativeFile))
+        );
+      })
+    );
+  };
+
+  const putFileContent = async (
     fileContent: string,
     fileName: string,
-    isPrivate: boolean,
-    callback: any
+    isPrivate: boolean
   ) => {
     const tmpobj = tmp.fileSync();
 
     fs.writeFileSync(tmpobj.name, fileContent);
-    const cleanup = (v1: any, v2: any) => {
+
+    try {
+      const result = await putFile(tmpobj.name, fileName, isPrivate);
+      return result;
+    } finally {
       tmpobj.removeCallback();
-      callback(v1, v2);
-    };
-    putFile(tmpobj.name, fileName, isPrivate, cleanup);
+    }
   };
 
-  const putFile = (
+  const putFile = async (
     filePath: string,
     fileName: string,
-    isPrivate: boolean,
-    callback: any
+    isPrivate: boolean
   ) => {
     const fileInfo = getFileInfo(fileName);
-    const obj: any = {
+    const obj: {
+      ACL: 'authenticated-read' | 'public-read';
+      ContentType?: string;
+      Bucket: string;
+      Key: string;
+      ContentEncoding?: string;
+    } = {
       ACL: isPrivate ? 'authenticated-read' : 'public-read',
       ContentType: fileInfo.mimeType,
       Bucket: bucketName,
@@ -224,36 +230,31 @@ export default function gsAdapter(conf: GsConfig): StorageAdapter {
       };
     }
 
-    getClient()
-      .bucket(bucketName)
-      .upload(filePath, options)
-      .then(() => {
-        if (obj.ACL === 'public-read') {
-          getClient()
-            .bucket(bucketName)
-            .file(fileName)
-            .makePublic()
-            .then(() => callback(null, obj))
-            .catch(err => callback({ code: err.code, msg: err.message }, obj));
-        } else {
-          callback(null, obj);
-        }
-      })
-      .catch(err => callback({ code: err.code, msg: err.message }, obj));
+    try {
+      await getClient().bucket(bucketName).upload(filePath, options);
+
+      if (obj.ACL === 'public-read') {
+        await getClient().bucket(bucketName).file(fileName).makePublic();
+      }
+
+      return obj;
+    } catch (err) {
+      throw { code: (err as any).code, msg: (err as any).message };
+    }
   };
 
   return {
-    getFile: fromCallback(getFile),
-    getJson: fromCallback(getJson),
+    getFile,
+    getJson,
     getUrl,
-    listSubDirectories: fromCallback(listSubDirectories),
+    listSubDirectories,
     maxConcurrentRequests: 20,
-    putDir: fromCallback(putDir),
-    putFile: fromCallback(putFile),
-    putFileContent: fromCallback(putFileContent),
+    putDir,
+    putFile,
+    putFileContent,
     adapterType: 'gs',
     isValid
-  } as any;
+  };
 }
 
 module.exports = gsAdapter;
