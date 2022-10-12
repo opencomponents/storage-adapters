@@ -10,7 +10,12 @@ import nodeDir, { PathsResult } from 'node-dir';
 import _ from 'lodash';
 import { promisify } from 'util';
 
-import { getFileInfo, getNextYear, strings } from 'oc-storage-adapters-utils';
+import {
+  getFileInfo,
+  getNextYear,
+  strings,
+  StorageAdapter
+} from 'oc-storage-adapters-utils';
 
 import type { Agent as httpAgent } from 'http';
 import type { Agent as httpsAgent } from 'https';
@@ -43,27 +48,6 @@ export type S3Config = RequireAllOrNone<
   },
   'key' | 'secret'
 >;
-
-export interface StorageAdapter {
-  adapterType: string;
-  getFile(filePath: string): Promise<string>;
-  getJson<T = unknown>(filePath: string, force?: boolean): Promise<T>;
-  getUrl: (componentName: string, version: string, fileName: string) => string;
-  listSubDirectories(dir: string): Promise<string[]>;
-  maxConcurrentRequests: number;
-  putDir(folderPath: string, filePath: string): Promise<unknown>;
-  putFile(
-    filePath: string,
-    fileName: string,
-    isPrivate: boolean
-  ): Promise<unknown>;
-  putFileContent(
-    data: unknown,
-    path: string,
-    isPrivate: boolean
-  ): Promise<unknown>;
-  isValid: () => boolean;
-}
 
 const streamToString = (stream: NodeJS.ReadableStream) =>
   new Promise((resolve, reject) => {
