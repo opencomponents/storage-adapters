@@ -20,22 +20,6 @@ jest.mock('node-dir', () => {
   };
 });
 
-jest.mock('async', () => {
-  return {
-    each: jest.fn((files, fileProcessing, cb) => {
-      const result = {};
-      let noProcessed = 0;
-      for (let file of files) {
-        fileProcessing(file, (err, res) => {
-          result[file] = { err, res };
-          noProcessed++;
-          if (noProcessed === files.length) cb(null, result);
-        });
-      }
-    })
-  };
-});
-
 test('put directory recognizes server.js and .env to be private', done => {
   const options = {
     bucket: 'test',

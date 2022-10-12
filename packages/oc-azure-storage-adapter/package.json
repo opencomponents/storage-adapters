@@ -32,7 +32,6 @@
   "license": "MIT",
   "dependencies": {
     "@azure/storage-blob": "12.11.0",
-    "async": "3.1.1",
     "azure-storage": "^2.8.1",
     "fs-extra": "8.1.0",
     "lodash": "^4.17.4",
@@ -43,7 +42,6 @@
     "universalify": "^2.0.0"
   },
   "devDependencies": {
-    "@types/async": "3.2.15",
     "@types/fs-extra": "9.0.13",
     "@types/lodash": "4.14.186",
     "@types/node-dir": "0.0.34"
