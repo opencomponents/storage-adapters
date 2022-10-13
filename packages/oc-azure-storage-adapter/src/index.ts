@@ -12,6 +12,7 @@ import {
   strings,
   StorageAdapter
 } from 'oc-storage-adapters-utils';
+import path from 'path';
 
 const getPaths: (path: string) => Promise<PathsResult> = promisify(
   nodeDir.paths
@@ -157,9 +158,11 @@ export default function azureAdapter(conf: AzureConfig): StorageAdapter {
 
   const putDir = async (dirInput: string, dirOutput: string) => {
     const paths = await getPaths(dirInput);
+    const packageJsonFile = path.join(dirInput, 'package.json');
+    const files = paths.files.filter(file => file !== packageJsonFile);
 
-    return Promise.all(
-      paths.files.map((file: string) => {
+    const filesResults = await Promise.all(
+      files.map((file: string) => {
         const relativeFile = file.slice(dirInput.length);
         const url = (dirOutput + relativeFile).replace(/\\/g, '/');
 
@@ -173,6 +176,15 @@ export default function azureAdapter(conf: AzureConfig): StorageAdapter {
         );
       })
     );
+    // Ensuring package.json is uploaded last so we can verify that a component
+    // was properly uploaded by checking if package.json exists
+    const packageJsonFileResult = await putFile(
+      packageJsonFile,
+      `${dirOutput}/package.json`.replace(/\\/g, '/'),
+      false
+    );
+
+    return [...filesResults, packageJsonFileResult];
   };
 
   const putFileContent = async (

@@ -5,22 +5,6 @@ jest.mock('fs-extra', () => {
   };
 });
 
-jest.mock('node-dir', () => {
-  return {
-    paths: jest.fn((pathToDir, cb) => {
-      const sep = require('path').sep;
-      cb(null, {
-        files: [
-          `${pathToDir}${sep}package.json`,
-          `${pathToDir}${sep}server.js`,
-          `${pathToDir}${sep}.env`,
-          `${pathToDir}${sep}template.js`
-        ]
-      });
-    })
-  };
-});
-
 let mockCachedTxt = 0;
 let mockCachedJson = 0;
 const googleStorage = jest.genMockFromModule('@google-cloud/storage');

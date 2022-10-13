@@ -1,6 +1,22 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import gs from '../src';
 
+jest.mock('node-dir', () => {
+  return {
+    paths: jest.fn((pathToDir, cb) => {
+      const sep = require('path').sep;
+      cb(null, {
+        files: [
+          `${pathToDir}${sep}package.json`,
+          `${pathToDir}${sep}server.js`,
+          `${pathToDir}${sep}.env`,
+          `${pathToDir}${sep}template.js`
+        ]
+      });
+    })
+  };
+});
+
 //Mock Date functions
 const DATE_TO_USE = new Date('2017');
 const _Date = Date;
@@ -181,15 +197,18 @@ test('test put dir (failure)', () => {
       '/absolute-path-to-dir',
       'components\\componentName-error\\1.0.0'
     )
-  ).rejects.toThrow('ENOENT');
+  ).rejects.toEqual({ code: 1234, msg: 'an error message' });
 });
 
-test('test put dir ', () => {
+test('Put dir uploads the package.json the last file to use it as a verifier', async () => {
   const client = gs(validOptions);
 
-  return expect(
-    client.putDir('/absolute-path-to-dir', 'components\\componentName\\1.0.0')
-  ).rejects.toThrow('ENOENT');
+  const results = (await client.putDir(
+    '/absolute-path-to-dir',
+    'components\\componentName\\1.0.0'
+  )) as any[];
+
+  expect(results.pop().Key).toBe('components/componentName/1.0.0/package.json');
 });
 
 test('test private putFileContent ', async () => {

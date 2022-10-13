@@ -223,6 +223,19 @@ test('test put dir (stream failure throwing)', () => {
   ).rejects.toEqual({ msg: 'sorry' });
 });
 
+test('Put dir uploads the package.json the last file to use it as a verifier', async () => {
+  const client = azure(validOptions);
+
+  const results = (await client.putDir(
+    '/absolute-path-to-dir',
+    'components\\componentName\\1.0.0'
+  )) as any[];
+
+  expect(results.pop().fileName).toBe(
+    'components/componentName/1.0.0/package.json'
+  );
+});
+
 test('test private putFileContent', async () => {
   const client = azure(validOptions);
 
