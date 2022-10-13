@@ -6,14 +6,14 @@ import {
 import Cache from 'nice-cache';
 import fs from 'fs-extra';
 import nodeDir, { PathsResult } from 'node-dir';
-import _ from 'lodash';
 import { promisify } from 'util';
 
 import {
   getFileInfo,
   getNextYear,
   strings,
-  StorageAdapter
+  StorageAdapter,
+  DirectoryListing
 } from 'oc-storage-adapters-utils';
 import path from 'path';
 
@@ -161,7 +161,7 @@ export default function s3Adapter(conf: S3Config): StorageAdapter {
   const getUrl = (componentName: string, version: string, fileName: string) =>
     `${conf.path}${componentName}/${version}/${fileName}`;
 
-  const listSubDirectories = async (dir: string) => {
+  const listDirectory = async (dir: string) => {
     const normalisedPath =
       dir.lastIndexOf('/') === dir.length - 1 && dir.length > 0
         ? dir
@@ -172,22 +172,33 @@ export default function s3Adapter(conf: S3Config): StorageAdapter {
       Prefix: normalisedPath,
       Delimiter: '/'
     });
+    const list: DirectoryListing[] = [];
 
-    if (data.CommonPrefixes!.length === 0) {
-      throw {
-        code: strings.errors.STORAGE.DIR_NOT_FOUND_CODE,
-        msg: strings.errors.STORAGE.DIR_NOT_FOUND(dir)
-      };
+    for (const item of data.CommonPrefixes ?? []) {
+      if (item.Prefix) {
+        list.push({
+          type: 'directory',
+          name: item.Prefix.slice(normalisedPath.length).replace(/\/$/, '')
+        });
+      }
     }
 
-    const result = _.map(data.CommonPrefixes, commonPrefix =>
-      commonPrefix.Prefix!.substr(
-        normalisedPath.length,
-        commonPrefix.Prefix!.length - normalisedPath.length - 1
-      )
-    );
+    for (const item of data.Contents ?? []) {
+      if (item.Key) {
+        list.push({
+          type: 'directory',
+          name: item.Key.slice(normalisedPath.length).replace(/\/$/, '')
+        });
+      }
+    }
 
-    return result;
+    return list;
+  };
+
+  const listSubDirectories = async (dir: string) => {
+    const list = await listDirectory(dir);
+
+    return list.filter(x => x.type === 'directory').map(x => x.name);
   };
 
   const putDir = async (dirInput: string, dirOutput: string) => {
@@ -250,6 +261,7 @@ export default function s3Adapter(conf: S3Config): StorageAdapter {
     getFile,
     getJson,
     getUrl,
+    listDirectory,
     listSubDirectories,
     maxConcurrentRequests: 20,
     putDir,

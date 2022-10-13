@@ -188,17 +188,6 @@ test('test getJson force mode', async () => {
   });
 });
 
-['hello', 'path/'].forEach(scenario => {
-  test(`test listObjects when bucket is empty for folder ${scenario}`, () => {
-    const client = s3({ ...validOptions, bucket: 'my-empty-bucket' });
-
-    return expect(client.listSubDirectories(scenario)).rejects.toEqual({
-      code: 'dir_not_found',
-      msg: `Directory "${scenario}" not found`
-    });
-  });
-});
-
 test('test getUrl ', () => {
   const client = s3(validOptions);
   expect(client.getUrl('test', '1.0.0', 'test.js')).toBe('/test/1.0.0/test.js');

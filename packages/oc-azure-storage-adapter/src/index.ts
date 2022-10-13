@@ -10,7 +10,8 @@ import { promisify } from 'util';
 import {
   getFileInfo,
   strings,
-  StorageAdapter
+  StorageAdapter,
+  DirectoryListing
 } from 'oc-storage-adapters-utils';
 import path from 'path';
 
@@ -130,7 +131,7 @@ export default function azureAdapter(conf: AzureConfig): StorageAdapter {
   const getUrl = (componentName: string, version: string, fileName: string) =>
     `${conf.path}${componentName}/${version}/${fileName}`;
 
-  const listSubDirectories = async (dir: string) => {
+  const listDirectory = async (dir: string) => {
     const normalisedPath =
       dir.lastIndexOf('/') === dir.length - 1 && dir.length > 0
         ? dir
@@ -139,21 +140,24 @@ export default function azureAdapter(conf: AzureConfig): StorageAdapter {
     const containerClient = getClient().getContainerClient(
       conf.privateContainerName
     );
-    const subDirectories = [];
+    const list: DirectoryListing[] = [];
 
     for await (const item of containerClient.listBlobsByHierarchy('/', {
       prefix: normalisedPath
     })) {
-      if (item.kind === 'prefix') {
-        const subDirectory = item.name
-          .replace(normalisedPath, '')
-          .replace(/\/$/, '');
-
-        subDirectories.push(subDirectory);
-      }
+      list.push({
+        name: item.name.slice(normalisedPath.length).replace(/\/$/, ''),
+        type: item.kind === 'prefix' ? 'directory' : 'file'
+      });
     }
 
-    return subDirectories;
+    return list;
+  };
+
+  const listSubDirectories = async (dir: string) => {
+    const list = await listDirectory(dir);
+
+    return list.filter(x => x.type === 'directory').map(x => x.name);
   };
 
   const putDir = async (dirInput: string, dirOutput: string) => {
@@ -235,6 +239,7 @@ export default function azureAdapter(conf: AzureConfig): StorageAdapter {
     getFile,
     getJson,
     getUrl,
+    listDirectory,
     listSubDirectories,
     maxConcurrentRequests: 20,
     putDir,

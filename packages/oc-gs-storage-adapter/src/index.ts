@@ -1,12 +1,14 @@
 import Cache from 'nice-cache';
 import fs from 'fs-extra';
+import _ from 'lodash';
 import nodeDir, { PathsResult } from 'node-dir';
 import { Storage, UploadOptions } from '@google-cloud/storage';
 import tmp from 'tmp';
 import {
   getFileInfo,
   strings,
-  StorageAdapter
+  StorageAdapter,
+  DirectoryListing
 } from 'oc-storage-adapters-utils';
 import { promisify } from 'util';
 import path from 'path';
@@ -15,6 +17,26 @@ const getPaths: (path: string) => Promise<PathsResult> = promisify(
   nodeDir.paths
 );
 
+// const testList = [
+//   'components-details.json',
+//   'components.json',
+//   'oc-client/0.49.15/package.json',
+//   'oc-client/0.49.15/server.js',
+//   'oc-client/0.49.15/src/oc-client.min.js',
+//   'oc-client/0.49.15/src/oc-client.min.map',
+//   'oc-client/0.49.15/template.js',
+//   'testoc/1.0.3/package.json',
+//   'testoc/1.0.3/react-component.js',
+//   'testoc/1.0.3/server.js',
+//   'testoc/1.0.3/styles.css',
+//   'testoc/1.0.3/template.js',
+//   'testoc/1.0.4/package.json',
+//   'testoc/1.0.4/react-component.js',
+//   'testoc/1.0.4/server.js',
+//   'testoc/1.0.4/styles.css',
+//   'testoc/1.0.4/template.js'
+// ];
+
 export interface GsConfig {
   bucket: string;
   projectId: string;
@@ -22,6 +44,30 @@ export interface GsConfig {
   maxAge?: boolean;
   verbosity?: boolean;
   refreshInterval?: number;
+}
+
+export function partition<T, U extends T>(
+  array: readonly T[],
+  predicate: (el: T) => el is U
+): [U[], Exclude<T, U>[]];
+export function partition<T>(
+  array: readonly T[],
+  predicate: (el: T) => boolean
+): [T[], T[]];
+export function partition(
+  array: readonly unknown[],
+  predicate: (el: unknown) => boolean
+): [unknown[], unknown[]] {
+  const matches: Array<unknown> = [];
+  const rest: Array<unknown> = [];
+  for (const element of array) {
+    if (predicate(element)) {
+      matches.push(element);
+    } else {
+      rest.push(element);
+    }
+  }
+  return [matches, rest];
 }
 
 export default function gsAdapter(conf: GsConfig): StorageAdapter {
@@ -104,35 +150,40 @@ export default function gsAdapter(conf: GsConfig): StorageAdapter {
   const getUrl = (componentName: string, version: string, fileName: string) =>
     `${conf.path}${componentName}/${version}/${fileName}`;
 
-  const listSubDirectories = async (dir: string) => {
+  const listDirectory = async (dir: string) => {
     const normalisedPath =
       dir.lastIndexOf('/') === dir.length - 1 && dir.length > 0
         ? dir
-        : dir + '/';
-
+        : `${dir}/`;
     const options = {
       prefix: normalisedPath
     };
 
+    const [fileList] = await getClient().bucket(bucketName).getFiles(options);
+
+    const relativePaths = fileList.map(file =>
+      file.name.replace(normalisedPath, '')
+    );
+    const files = relativePaths.filter(path => !path.match('/'));
+    const directories = _.uniq(
+      relativePaths
+        .filter(path => !!path.match('/'))
+        .map(path => path.split('/')[0])
+    );
+
+    const list: DirectoryListing[] = [
+      ...files.map(file => ({ name: file, type: 'file' } as const)),
+      ...directories.map(dir => ({ name: dir, type: 'directory' } as const))
+    ];
+
+    return list;
+  };
+
+  const listSubDirectories = async (dir: string) => {
     try {
-      const results = await getClient().bucket(bucketName).getFiles(options);
+      const list = await listDirectory(dir);
 
-      const files = results[0];
-      if (files.length === 0) {
-        throw 'no files';
-      }
-
-      const result = files
-        //remove prefix
-        .map(file => file.name.replace(normalisedPath, ''))
-        // only get files that aren't in root directory
-        .filter(file => file.split('/').length > 1)
-        //get directory names
-        .map(file => file.split('/')[0])
-        // reduce to unique directories
-        .filter((item, i, ar) => ar.indexOf(item) === i);
-
-      return result;
+      return list.filter(x => x.type === 'directory').map(x => x.name);
     } catch (err) {
       throw {
         code: strings.errors.STORAGE.DIR_NOT_FOUND_CODE,
@@ -241,6 +292,7 @@ export default function gsAdapter(conf: GsConfig): StorageAdapter {
     getFile,
     getJson,
     getUrl,
+    listDirectory,
     listSubDirectories,
     maxConcurrentRequests: 20,
     putDir,
