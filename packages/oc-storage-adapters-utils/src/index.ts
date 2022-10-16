@@ -3,6 +3,12 @@ export { getMimeType } from './get-mime-type';
 export { getNextYear } from './get-next-year';
 export * as strings from './strings';
 
+export interface StorageAdapterBaseConfig {
+  path: string;
+  verbosity?: boolean;
+  refreshInterval?: number;
+}
+
 export interface StorageAdapter {
   adapterType: string;
   getFile(filePath: string, force?: boolean): Promise<string>;

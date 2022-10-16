@@ -10,7 +10,8 @@ import { promisify } from 'util';
 import {
   getFileInfo,
   strings,
-  StorageAdapter
+  StorageAdapter,
+  StorageAdapterBaseConfig
 } from 'oc-storage-adapters-utils';
 import path from 'path';
 
@@ -32,14 +33,11 @@ async function streamToBuffer(readableStream: NodeJS.ReadableStream) {
   });
 }
 
-export interface AzureConfig {
+export interface AzureConfig extends StorageAdapterBaseConfig {
   publicContainerName: string;
   privateContainerName: string;
   accountName: string;
   accountKey: string;
-  path: string;
-  verbosity?: boolean;
-  refreshInterval?: number;
 }
 
 export default function azureAdapter(conf: AzureConfig): StorageAdapter {

@@ -13,7 +13,8 @@ import {
   getFileInfo,
   getNextYear,
   strings,
-  StorageAdapter
+  StorageAdapter,
+  StorageAdapterBaseConfig
 } from 'oc-storage-adapters-utils';
 import path from 'path';
 
@@ -30,24 +31,22 @@ type RequireAllOrNone<ObjectType, KeysType extends keyof ObjectType = never> = (
 ) & // Require none of the given keys.
   Omit<ObjectType, KeysType>; // The rest of the keys.
 
-export type S3Config = RequireAllOrNone<
-  {
-    bucket: string;
-    region: string;
-    key?: string;
-    secret?: string;
-    path: string;
-    sslEnabled?: boolean;
-    s3ForcePathStyle?: boolean;
-    timeout?: number;
-    agentProxy?: httpAgent | httpsAgent;
-    endpoint?: string;
-    debug?: boolean;
-    verbosity?: boolean;
-    refreshInterval?: number;
-  },
-  'key' | 'secret'
->;
+export type S3Config = StorageAdapterBaseConfig &
+  RequireAllOrNone<
+    {
+      bucket: string;
+      region: string;
+      key?: string;
+      secret?: string;
+      sslEnabled?: boolean;
+      s3ForcePathStyle?: boolean;
+      timeout?: number;
+      agentProxy?: httpAgent | httpsAgent;
+      endpoint?: string;
+      debug?: boolean;
+    },
+    'key' | 'secret'
+  >;
 
 const streamToString = (stream: NodeJS.ReadableStream) =>
   new Promise((resolve, reject) => {

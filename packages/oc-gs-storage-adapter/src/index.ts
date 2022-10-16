@@ -6,7 +6,8 @@ import tmp from 'tmp';
 import {
   getFileInfo,
   strings,
-  StorageAdapter
+  StorageAdapter,
+  StorageAdapterBaseConfig
 } from 'oc-storage-adapters-utils';
 import { promisify } from 'util';
 import path from 'path';
@@ -15,13 +16,10 @@ const getPaths: (path: string) => Promise<PathsResult> = promisify(
   nodeDir.paths
 );
 
-export interface GsConfig {
+export interface GsConfig extends StorageAdapterBaseConfig {
   bucket: string;
   projectId: string;
-  path: string;
   maxAge?: boolean;
-  verbosity?: boolean;
-  refreshInterval?: number;
 }
 
 export default function gsAdapter(conf: GsConfig): StorageAdapter {
