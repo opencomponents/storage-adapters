@@ -4,6 +4,7 @@ export { getNextYear } from './get-next-year';
 export * as strings from './strings';
 
 export interface StorageAdapterBaseConfig {
+  componentsDir: string;
   path: string;
   verbosity?: boolean;
   refreshInterval?: number;
