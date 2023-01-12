@@ -5,9 +5,7 @@ import {
 } from '@aws-sdk/node-http-handler';
 import Cache from 'nice-cache';
 import fs from 'fs-extra';
-import nodeDir, { PathsResult } from 'node-dir';
 import _ from 'lodash';
-import { promisify } from 'util';
 
 import {
   getFileInfo,
@@ -16,14 +14,9 @@ import {
   StorageAdapter,
   StorageAdapterBaseConfig
 } from 'oc-storage-adapters-utils';
-import path from 'path';
 
 import type { Agent as httpAgent } from 'http';
 import type { Agent as httpsAgent } from 'https';
-
-const getPaths: (path: string) => Promise<PathsResult> = promisify(
-  nodeDir.paths
-);
 
 type RequireAllOrNone<ObjectType, KeysType extends keyof ObjectType = never> = (
   | Required<Pick<ObjectType, KeysType>> // Require all of the given keys.
@@ -189,37 +182,6 @@ export default function s3Adapter(conf: S3Config): StorageAdapter {
     return result;
   };
 
-  const putDir = async (dirInput: string, dirOutput: string) => {
-    const paths = await getPaths(dirInput);
-    const packageJsonFile = path.join(dirInput, 'package.json');
-    const files = paths.files.filter(file => file !== packageJsonFile);
-
-    const filesResults = await Promise.all(
-      files.map((file: string) => {
-        const relativeFile = file.slice(dirInput.length);
-        const url = (dirOutput + relativeFile).replace(/\\/g, '/');
-
-        const serverPattern = /(\\|\/)server\.js/;
-        const dotFilePattern = /(\\|\/)\..+/;
-        const privateFilePatterns = [serverPattern, dotFilePattern];
-        return putFile(
-          file,
-          url,
-          privateFilePatterns.some(r => r.test(relativeFile))
-        );
-      })
-    );
-    // Ensuring package.json is uploaded last so we can verify that a component
-    // was properly uploaded by checking if package.json exists
-    const packageJsonFileResult = await putFile(
-      packageJsonFile,
-      `${dirOutput}/package.json`.replace(/\\/g, '/'),
-      false
-    );
-
-    return [...filesResults, packageJsonFileResult];
-  };
-
   const putFileContent = async (
     fileContent: string | fs.ReadStream,
     fileName: string,
@@ -251,7 +213,6 @@ export default function s3Adapter(conf: S3Config): StorageAdapter {
     getUrl,
     listSubDirectories,
     maxConcurrentRequests: 20,
-    putDir,
     putFile,
     putFileContent,
     adapterType: 's3',

@@ -8,25 +8,6 @@ jest.mock('fs-extra', () => {
   };
 });
 
-jest.mock('node-dir', () => {
-  return {
-    paths: jest.fn((pathToDir, cb) => {
-      cb(null, {
-        files: [
-          `${pathToDir}\\package.json`,
-          `${pathToDir}\\server.js`,
-          `${pathToDir}\\.env`,
-          `${pathToDir}\\template.js`,
-          `${pathToDir}/package.json`,
-          `${pathToDir}/server.js`,
-          `${pathToDir}/.env`,
-          `${pathToDir}/template.js`
-        ]
-      });
-    })
-  };
-});
-
 let cachedTxt = 0;
 let cachedJson = 0;
 

@@ -34,12 +34,10 @@
     "fs-extra": "8.1.0",
     "lodash": "^4.17.4",
     "nice-cache": "^0.0.5",
-    "node-dir": "^0.1.17",
     "oc-storage-adapters-utils": "2.0.2"
   },
   "devDependencies": {
     "@types/fs-extra": "9.0.13",
-    "@types/lodash": "4.14.186",
-    "@types/node-dir": "0.0.34"
+    "@types/lodash": "4.14.186"
   }
 }

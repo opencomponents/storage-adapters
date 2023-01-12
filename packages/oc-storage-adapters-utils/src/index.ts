@@ -17,7 +17,6 @@ export interface StorageAdapter {
   getUrl: (componentName: string, version: string, fileName: string) => string;
   listSubDirectories(dir: string): Promise<string[]>;
   maxConcurrentRequests: number;
-  putDir(folderPath: string, filePath: string): Promise<unknown>;
   putFile(
     filePath: string,
     fileName: string,
