@@ -1,4 +1,4 @@
-import { S3 } from '@aws-sdk/client-s3';
+import { S3, S3ClientConfig } from '@aws-sdk/client-s3';
 import {
   NodeHttpHandler,
   NodeHttpHandlerOptions
@@ -95,19 +95,23 @@ export default function s3Adapter(conf: S3Config): StorageAdapter {
     requestHandler = new NodeHttpHandler(handlerOptions);
   }
 
-  const getClient = () =>
-    new S3({
+  const getClient = () => {
+    const configOpts: S3ClientConfig = {
       logger: conf.debug ? (console.log as any) : undefined,
       tls: sslEnabled,
-      credentials: {
-        accessKeyId: accessKeyId!,
-        secretAccessKey: secretAccessKey!
-      },
       requestHandler,
       endpoint: conf.endpoint,
       region,
       forcePathStyle: s3ForcePathStyle
-    });
+    }
+    if (accessKeyId && secretAccessKey) {
+      configOpts.credentials = {
+        accessKeyId,
+        secretAccessKey
+      };
+    }
+    return new S3(configOpts);
+  };
 
   const getFile = async (filePath: string, force = false) => {
     const getFromAws = async () => {
