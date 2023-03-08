@@ -15,7 +15,8 @@ const validOptions = {
   privateContainerName: 'privcon',
   accountName: 'name',
   accountKey: 'key',
-  path: '/'
+  path: '/',
+  componentsDir: 'components'
 };
 
 test('should expose the correct methods', () => {

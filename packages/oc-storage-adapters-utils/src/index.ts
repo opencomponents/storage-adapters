@@ -21,12 +21,14 @@ export interface StorageAdapter {
   putFile(
     filePath: string,
     fileName: string,
-    isPrivate: boolean
+    isPrivate: boolean,
+    client?: unknown
   ): Promise<unknown>;
   putFileContent(
     data: unknown,
     path: string,
-    isPrivate: boolean
+    isPrivate: boolean,
+    client?: unknown
   ): Promise<unknown>;
   isValid: () => boolean;
 }

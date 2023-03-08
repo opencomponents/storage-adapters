@@ -95,22 +95,27 @@ export default function s3Adapter(conf: S3Config): StorageAdapter {
     requestHandler = new NodeHttpHandler(handlerOptions);
   }
 
+  let client: S3 | undefined = undefined;
+
   const getClient = () => {
-    const configOpts: S3ClientConfig = {
-      logger: conf.debug ? (console.log as any) : undefined,
-      tls: sslEnabled,
-      requestHandler,
-      endpoint: conf.endpoint,
-      region,
-      forcePathStyle: s3ForcePathStyle
+    if (!client) {
+      const configOpts: S3ClientConfig = {
+        logger: conf.debug ? (console as any) : undefined,
+        tls: sslEnabled,
+        requestHandler,
+        endpoint: conf.endpoint,
+        region,
+        forcePathStyle: s3ForcePathStyle
+      }
+      if (accessKeyId && secretAccessKey) {
+        configOpts.credentials = {
+          accessKeyId,
+          secretAccessKey
+        };
+      }
+      client = new S3(configOpts);
     }
-    if (accessKeyId && secretAccessKey) {
-      configOpts.credentials = {
-        accessKeyId,
-        secretAccessKey
-      };
-    }
-    return new S3(configOpts);
+    return client;
   };
 
   const getFile = async (filePath: string, force = false) => {
@@ -197,6 +202,7 @@ export default function s3Adapter(conf: S3Config): StorageAdapter {
     const paths = await getPaths(dirInput);
     const packageJsonFile = path.join(dirInput, 'package.json');
     const files = paths.files.filter(file => file !== packageJsonFile);
+    const client = getClient();
 
     const filesResults = await Promise.all(
       files.map((file: string) => {
@@ -209,7 +215,8 @@ export default function s3Adapter(conf: S3Config): StorageAdapter {
         return putFile(
           file,
           url,
-          privateFilePatterns.some(r => r.test(relativeFile))
+          privateFilePatterns.some(r => r.test(relativeFile)),
+          client
         );
       })
     );
@@ -218,7 +225,8 @@ export default function s3Adapter(conf: S3Config): StorageAdapter {
     const packageJsonFileResult = await putFile(
       packageJsonFile,
       `${dirOutput}/package.json`.replace(/\\/g, '/'),
-      false
+      false,
+      client
     );
 
     return [...filesResults, packageJsonFileResult];
@@ -227,11 +235,13 @@ export default function s3Adapter(conf: S3Config): StorageAdapter {
   const putFileContent = async (
     fileContent: string | fs.ReadStream,
     fileName: string,
-    isPrivate: boolean
+    isPrivate: boolean,
+    client: S3
   ) => {
     const fileInfo = getFileInfo(fileName);
+    const localClient = client ? client : getClient();
 
-    return getClient().putObject({
+    return localClient.putObject({
       Bucket: bucket,
       Key: fileName,
       Body: fileContent,
@@ -243,10 +253,10 @@ export default function s3Adapter(conf: S3Config): StorageAdapter {
     });
   };
 
-  const putFile = (filePath: string, fileName: string, isPrivate: boolean) => {
+  const putFile = (filePath: string, fileName: string, isPrivate: boolean, client: S3) => {
     const stream = fs.createReadStream(filePath);
 
-    return putFileContent(stream, fileName, isPrivate);
+    return putFileContent(stream, fileName, isPrivate, client);
   };
 
   return {

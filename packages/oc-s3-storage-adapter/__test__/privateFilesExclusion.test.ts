@@ -7,7 +7,8 @@ test('put directory recognizes server.js and .env to be private', async () => {
     region: 'region-test',
     key: 'test-key',
     secret: 'test-secret',
-    path: '/'
+    path: '/',
+    componentsDir: 'components'
   };
 
   const client = s3(options);
