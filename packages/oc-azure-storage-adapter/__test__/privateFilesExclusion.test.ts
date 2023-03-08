@@ -7,7 +7,8 @@ test('put directory recognizes server.js and .env to be private', async () => {
     privateContainerName: 'privcon',
     accountName: 'name',
     accountKey: 'key',
-    path: '/'
+    path: '/',
+    componentsDir: 'components'
   });
 
   const mockResult = (await client.putDir('.', '.')) as Array<{

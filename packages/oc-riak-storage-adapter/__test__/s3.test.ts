@@ -14,7 +14,8 @@ const validOptions = {
   region: 'region-test',
   key: 'test-key',
   secret: 'test-secret',
-  path: '/'
+  path: '/',
+  componentsDir: 'components'
 };
 
 test('should expose the correct methods', () => {

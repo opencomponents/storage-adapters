@@ -143,6 +143,7 @@ export default function gsAdapter(conf: GsConfig): StorageAdapter {
     const paths = await getPaths(dirInput);
     const packageJsonFile = path.join(dirInput, 'package.json');
     const files = paths.files.filter(file => file !== packageJsonFile);
+    const client = getClient();
 
     const filesResults = await Promise.all(
       files.map((file: string) => {
@@ -155,7 +156,8 @@ export default function gsAdapter(conf: GsConfig): StorageAdapter {
         return putFile(
           file,
           url,
-          privateFilePatterns.some(r => r.test(relativeFile))
+          privateFilePatterns.some(r => r.test(relativeFile)),
+          client
         );
       })
     );
@@ -164,7 +166,8 @@ export default function gsAdapter(conf: GsConfig): StorageAdapter {
     const packageJsonFileResult = await putFile(
       packageJsonFile,
       `${dirOutput}/package.json`.replace(/\\/g, '/'),
-      false
+      false,
+      client
     );
 
     return [...filesResults, packageJsonFileResult];
@@ -173,14 +176,15 @@ export default function gsAdapter(conf: GsConfig): StorageAdapter {
   const putFileContent = async (
     fileContent: string,
     fileName: string,
-    isPrivate: boolean
+    isPrivate: boolean,
+    client: Storage
   ) => {
     const tmpobj = tmp.fileSync();
 
     fs.writeFileSync(tmpobj.name, fileContent);
 
     try {
-      const result = await putFile(tmpobj.name, fileName, isPrivate);
+      const result = await putFile(tmpobj.name, fileName, isPrivate, client);
       return result;
     } finally {
       tmpobj.removeCallback();
@@ -190,7 +194,8 @@ export default function gsAdapter(conf: GsConfig): StorageAdapter {
   const putFile = async (
     filePath: string,
     fileName: string,
-    isPrivate: boolean
+    isPrivate: boolean,
+    client: Storage
   ) => {
     const fileInfo = getFileInfo(fileName);
     const obj: {
@@ -222,11 +227,12 @@ export default function gsAdapter(conf: GsConfig): StorageAdapter {
       };
     }
 
+    const localClient = client ? client : getClient();
     try {
-      await getClient().bucket(bucketName).upload(filePath, options);
+      await localClient.bucket(bucketName).upload(filePath, options);
 
       if (obj.ACL === 'public-read') {
-        await getClient().bucket(bucketName).file(fileName).makePublic();
+        await localClient.bucket(bucketName).file(fileName).makePublic();
       }
 
       return obj;
