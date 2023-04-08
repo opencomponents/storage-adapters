@@ -1,6 +1,5 @@
 import Cache from 'nice-cache';
 import fs from 'fs-extra';
-import nodeDir, { PathsResult } from 'node-dir';
 import { Storage, UploadOptions } from '@google-cloud/storage';
 import tmp from 'tmp';
 import {
@@ -9,12 +8,6 @@ import {
   StorageAdapter,
   StorageAdapterBaseConfig
 } from 'oc-storage-adapters-utils';
-import { promisify } from 'util';
-import path from 'path';
-
-const getPaths: (path: string) => Promise<PathsResult> = promisify(
-  nodeDir.paths
-);
 
 export interface GsConfig extends StorageAdapterBaseConfig {
   bucket: string;
@@ -139,37 +132,6 @@ export default function gsAdapter(conf: GsConfig): StorageAdapter {
     }
   };
 
-  const putDir = async (dirInput: string, dirOutput: string) => {
-    const paths = await getPaths(dirInput);
-    const packageJsonFile = path.join(dirInput, 'package.json');
-    const files = paths.files.filter(file => file !== packageJsonFile);
-
-    const filesResults = await Promise.all(
-      files.map((file: string) => {
-        const relativeFile = file.slice(dirInput.length);
-        const url = (dirOutput + relativeFile).replace(/\\/g, '/');
-
-        const serverPattern = /(\\|\/)server\.js/;
-        const dotFilePattern = /(\\|\/)\..+/;
-        const privateFilePatterns = [serverPattern, dotFilePattern];
-        return putFile(
-          file,
-          url,
-          privateFilePatterns.some(r => r.test(relativeFile))
-        );
-      })
-    );
-    // Ensuring package.json is uploaded last so we can verify that a component
-    // was properly uploaded by checking if package.json exists
-    const packageJsonFileResult = await putFile(
-      packageJsonFile,
-      `${dirOutput}/package.json`.replace(/\\/g, '/'),
-      false
-    );
-
-    return [...filesResults, packageJsonFileResult];
-  };
-
   const putFileContent = async (
     fileContent: string,
     fileName: string,
@@ -241,7 +203,6 @@ export default function gsAdapter(conf: GsConfig): StorageAdapter {
     getUrl,
     listSubDirectories,
     maxConcurrentRequests: 20,
-    putDir,
     putFile,
     putFileContent,
     adapterType: 'gs',

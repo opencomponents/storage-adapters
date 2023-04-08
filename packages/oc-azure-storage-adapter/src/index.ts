@@ -5,19 +5,12 @@ import {
 } from '@azure/storage-blob';
 import Cache from 'nice-cache';
 import fs from 'fs-extra';
-import nodeDir, { PathsResult } from 'node-dir';
-import { promisify } from 'util';
 import {
   getFileInfo,
   strings,
   StorageAdapter,
   StorageAdapterBaseConfig
 } from 'oc-storage-adapters-utils';
-import path from 'path';
-
-const getPaths: (path: string) => Promise<PathsResult> = promisify(
-  nodeDir.paths
-);
 
 // [Node.js only] A helper method used to read a Node.js readable stream into a Buffer
 async function streamToBuffer(readableStream: NodeJS.ReadableStream) {
@@ -154,37 +147,6 @@ export default function azureAdapter(conf: AzureConfig): StorageAdapter {
     return subDirectories;
   };
 
-  const putDir = async (dirInput: string, dirOutput: string) => {
-    const paths = await getPaths(dirInput);
-    const packageJsonFile = path.join(dirInput, 'package.json');
-    const files = paths.files.filter(file => file !== packageJsonFile);
-
-    const filesResults = await Promise.all(
-      files.map((file: string) => {
-        const relativeFile = file.slice(dirInput.length);
-        const url = (dirOutput + relativeFile).replace(/\\/g, '/');
-
-        const serverPattern = /(\\|\/)server\.js/;
-        const dotFilePattern = /(\\|\/)\..+/;
-        const privateFilePatterns = [serverPattern, dotFilePattern];
-        return putFile(
-          file,
-          url,
-          privateFilePatterns.some(r => r.test(relativeFile))
-        );
-      })
-    );
-    // Ensuring package.json is uploaded last so we can verify that a component
-    // was properly uploaded by checking if package.json exists
-    const packageJsonFileResult = await putFile(
-      packageJsonFile,
-      `${dirOutput}/package.json`.replace(/\\/g, '/'),
-      false
-    );
-
-    return [...filesResults, packageJsonFileResult];
-  };
-
   const putFileContent = async (
     fileContent: string | fs.ReadStream,
     fileName: string,
@@ -235,7 +197,6 @@ export default function azureAdapter(conf: AzureConfig): StorageAdapter {
     getUrl,
     listSubDirectories,
     maxConcurrentRequests: 20,
-    putDir,
     putFile,
     putFileContent,
     adapterType: 'azure-blob-storage',

@@ -14,7 +14,8 @@ const validOptions = {
   region: 'region-test',
   key: 'test-key',
   secret: 'test-secret',
-  path: '/'
+  path: '/',
+  componentsDir: 'components'
 };
 
 test('should expose the correct methods', () => {
@@ -28,7 +29,6 @@ test('should expose the correct methods', () => {
     { method: 'isValid', type: Function },
     { method: 'listSubDirectories', type: Function },
     { method: 'maxConcurrentRequests', value: 20 },
-    { method: 'putDir', type: Function },
     { method: 'putFileContent', type: Function }
   ].forEach(api => {
     if (api.type === Function) {
@@ -202,47 +202,6 @@ test('test getJson force mode', async () => {
 test('test getUrl ', () => {
   const client = s3(validOptions);
   expect(client.getUrl('test', '1.0.0', 'test.js')).toBe('/test/1.0.0/test.js');
-});
-
-test('test put dir (failure)', () => {
-  const client = s3(validOptions);
-
-  return expect(
-    client.putDir(
-      '/absolute-path-to-dir',
-      'components\\componentName-error\\1.0.0'
-    )
-  ).rejects.toEqual({
-    code: 1234,
-    message: 'an error message',
-    retryable: true,
-    statusCode: 500,
-    time: DATE_TO_USE,
-    hostname: 'hostname',
-    region: 'us-west2'
-  });
-});
-
-test('test put dir (stream failure throwing)', () => {
-  const client = s3(validOptions);
-
-  return expect(
-    client.putDir(
-      '/absolute-path-to-dir',
-      'components\\componentName-error-throw\\1.0.0'
-    )
-  ).rejects.toThrow('sorry');
-});
-
-test('Put dir uploads the package.json the last file to use it as a verifier', async () => {
-  const client = s3(validOptions);
-
-  const results = (await client.putDir(
-    '/absolute-path-to-dir',
-    'components\\componentName\\1.0.0'
-  )) as any[];
-
-  expect(results.pop().Key).toBe('components/componentName/1.0.0/package.json');
 });
 
 test('test private putFileContent ', async () => {
