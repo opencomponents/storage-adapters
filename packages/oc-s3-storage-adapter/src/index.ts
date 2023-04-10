@@ -123,7 +123,7 @@ export default function s3Adapter(conf: S3Config): StorageAdapter {
 
         return streamToString(data.Body as any);
       } catch (err) {
-        throw (err as any).code === 'NoSuchKey'
+        throw (err as any).Code === 'NoSuchKey'
           ? {
               code: strings.errors.STORAGE.FILE_NOT_FOUND_CODE,
               msg: strings.errors.STORAGE.FILE_NOT_FOUND(filePath)
@@ -176,7 +176,7 @@ export default function s3Adapter(conf: S3Config): StorageAdapter {
       Delimiter: '/'
     });
 
-    if (data.CommonPrefixes!.length === 0) {
+    if (data.CommonPrefixes === undefined || data.CommonPrefixes.length === 0) {
       throw {
         code: strings.errors.STORAGE.DIR_NOT_FOUND_CODE,
         msg: strings.errors.STORAGE.DIR_NOT_FOUND(dir)
