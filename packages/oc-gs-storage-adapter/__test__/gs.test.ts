@@ -28,7 +28,8 @@ global.Date.now = _Date.now;
 const validOptions = {
   bucket: 'test',
   projectId: '12345',
-  path: '/'
+  path: '/',
+  componentsDir: 'components'
 };
 
 test('should expose the correct methods', () => {

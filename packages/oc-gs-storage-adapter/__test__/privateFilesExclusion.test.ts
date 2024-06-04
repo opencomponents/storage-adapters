@@ -24,7 +24,8 @@ test('put directory recognizes server.js and .env to be private', async () => {
   const options = {
     bucket: 'test',
     projectId: '12345',
-    path: 'somepath'
+    path: 'somepath',
+    componentsDir: 'components'
   };
   const client = gs(options);
 

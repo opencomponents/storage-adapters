@@ -58,16 +58,21 @@ export default function azureAdapter(conf: AzureConfig): StorageAdapter {
     refreshInterval: conf.refreshInterval
   });
 
+  let client: BlobServiceClient | undefined = undefined;
+
   const getClient = () => {
-    const sharedKeyCredential = new StorageSharedKeyCredential(
-      conf.accountName,
-      conf.accountKey
-    );
-    const blobServiceClient = new BlobServiceClient(
-      `https://${conf.accountName}.blob.core.windows.net`,
-      sharedKeyCredential
-    );
-    return blobServiceClient;
+    if (!client) {
+      const sharedKeyCredential = new StorageSharedKeyCredential(
+        conf.accountName,
+        conf.accountKey
+      );
+      client = new BlobServiceClient(
+        `https://${conf.accountName}.blob.core.windows.net`,
+        sharedKeyCredential
+      );
+      
+    }
+    return client;
   };
 
   const getFile = async (filePath: string, force = false) => {
@@ -158,6 +163,7 @@ export default function azureAdapter(conf: AzureConfig): StorageAdapter {
     const paths = await getPaths(dirInput);
     const packageJsonFile = path.join(dirInput, 'package.json');
     const files = paths.files.filter(file => file !== packageJsonFile);
+    const client = getClient();
 
     const filesResults = await Promise.all(
       files.map((file: string) => {
@@ -170,7 +176,8 @@ export default function azureAdapter(conf: AzureConfig): StorageAdapter {
         return putFile(
           file,
           url,
-          privateFilePatterns.some(r => r.test(relativeFile))
+          privateFilePatterns.some(r => r.test(relativeFile)),
+          client
         );
       })
     );
@@ -179,7 +186,8 @@ export default function azureAdapter(conf: AzureConfig): StorageAdapter {
     const packageJsonFileResult = await putFile(
       packageJsonFile,
       `${dirOutput}/package.json`.replace(/\\/g, '/'),
-      false
+      false,
+      client
     );
 
     return [...filesResults, packageJsonFileResult];
@@ -188,7 +196,8 @@ export default function azureAdapter(conf: AzureConfig): StorageAdapter {
   const putFileContent = async (
     fileContent: string | fs.ReadStream,
     fileName: string,
-    isPrivate: boolean
+    isPrivate: boolean,
+    client: BlobServiceClient
   ) => {
     const content =
       typeof fileContent === 'string'
@@ -208,8 +217,8 @@ export default function azureAdapter(conf: AzureConfig): StorageAdapter {
       if (fileInfo.gzip) {
         blobHTTPHeaders.blobContentEncoding = 'gzip';
       }
-
-      const containerClient = getClient().getContainerClient(containerName);
+      const localClient = client ? client : getClient();
+      const containerClient = localClient.getContainerClient(containerName);
       const blockBlobClient = containerClient.getBlockBlobClient(fileName);
 
       return blockBlobClient.uploadData(content, {
@@ -224,9 +233,9 @@ export default function azureAdapter(conf: AzureConfig): StorageAdapter {
     return result;
   };
 
-  const putFile = (filePath: string, fileName: string, isPrivate: boolean) => {
+  const putFile = (filePath: string, fileName: string, isPrivate: boolean, client: BlobServiceClient) => {
     const stream = fs.createReadStream(filePath);
-    return putFileContent(stream, fileName, isPrivate);
+    return putFileContent(stream, fileName, isPrivate, client);
   };
 
   return {
