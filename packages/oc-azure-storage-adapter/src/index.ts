@@ -5,6 +5,7 @@ import {
 } from '@azure/storage-blob';
 import Cache from 'nice-cache';
 import fs from 'fs-extra';
+import { DefaultAzureCredential } from '@azure/identity';
 import nodeDir, { PathsResult } from 'node-dir';
 import { promisify } from 'util';
 import {
@@ -36,18 +37,13 @@ async function streamToBuffer(readableStream: NodeJS.ReadableStream) {
 export interface AzureConfig extends StorageAdapterBaseConfig {
   publicContainerName: string;
   privateContainerName: string;
-  accountName: string;
-  accountKey: string;
+  accountName?: string;
+  accountKey?: string;
 }
 
 export default function azureAdapter(conf: AzureConfig): StorageAdapter {
   const isValid = () => {
-    if (
-      !conf.publicContainerName ||
-      !conf.privateContainerName ||
-      !conf.accountName ||
-      !conf.accountKey
-    ) {
+    if (!conf.publicContainerName || !conf.privateContainerName) {
       return false;
     }
     return true;
@@ -62,15 +58,12 @@ export default function azureAdapter(conf: AzureConfig): StorageAdapter {
 
   const getClient = () => {
     if (!client) {
-      const sharedKeyCredential = new StorageSharedKeyCredential(
-        conf.accountName,
-        conf.accountKey
-      );
       client = new BlobServiceClient(
         `https://${conf.accountName}.blob.core.windows.net`,
-        sharedKeyCredential
+        conf.accountName && conf.accountKey
+          ? new StorageSharedKeyCredential(conf.accountName, conf.accountKey)
+          : new DefaultAzureCredential()
       );
-      
     }
     return client;
   };
@@ -233,7 +226,12 @@ export default function azureAdapter(conf: AzureConfig): StorageAdapter {
     return result;
   };
 
-  const putFile = (filePath: string, fileName: string, isPrivate: boolean, client: BlobServiceClient) => {
+  const putFile = (
+    filePath: string,
+    fileName: string,
+    isPrivate: boolean,
+    client: BlobServiceClient
+  ) => {
     const stream = fs.createReadStream(filePath);
     return putFileContent(stream, fileName, isPrivate, client);
   };
