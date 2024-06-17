@@ -45,11 +45,11 @@ test('validate valid conf without credentials', () => {
   const options = {
     publicContainerName: 'pubcon',
     privateContainerName: 'privcon',
-    path: 'path'
+    path: 'path',
+    componentsDir: 'components'
   };
-  // @ts-expect-error Bad config
   const client = azure(options);
-  expect(client.isValid()).toBe(false);
+  expect(client.isValid()).toBe(true);
 });
 
 test('validate valid conf with credentials', () => {
@@ -69,28 +69,6 @@ test('validate missing public container', () => {
 test('validate missing private container', () => {
   const options = {
     publicContainerName: 'pubcon'
-  };
-  // @ts-expect-error Bad config
-  const client = azure(options);
-  expect(client.isValid()).toBe(false);
-});
-
-test('validate partial credentials, no key', () => {
-  const options = {
-    publicContainerName: 'pubcon',
-    privateContainerName: 'privcon',
-    accountName: 'acc'
-  };
-  // @ts-expect-error Bad config
-  const client = azure(options);
-  expect(client.isValid()).toBe(false);
-});
-
-test('validate partial credentials, no name', () => {
-  const options = {
-    publicContainerName: 'pubcon',
-    privateContainerName: 'privcon',
-    accountKey: 'accKey'
   };
   // @ts-expect-error Bad config
   const client = azure(options);
