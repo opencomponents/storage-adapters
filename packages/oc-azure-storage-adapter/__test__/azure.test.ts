@@ -43,6 +43,7 @@ test('should expose the correct methods', () => {
 
 test('validate valid conf without credentials', () => {
   const options = {
+    accountName: 'name',
     publicContainerName: 'pubcon',
     privateContainerName: 'privcon',
     path: 'path',
@@ -58,20 +59,29 @@ test('validate valid conf with credentials', () => {
 });
 
 test('validate missing public container', () => {
-  const options = {
-    privateContainerName: 'privcon'
-  };
   // @ts-expect-error Bad config
-  const client = azure(options);
+  const client = azure({
+    accountName: 'name',
+    privateContainerName: 'privcon'
+  });
   expect(client.isValid()).toBe(false);
 });
 
 test('validate missing private container', () => {
-  const options = {
-    publicContainerName: 'pubcon'
-  };
   // @ts-expect-error Bad config
-  const client = azure(options);
+  const client = azure({
+    accountName: 'name',
+    publicContainerName: 'pubcon'
+  });
+  expect(client.isValid()).toBe(false);
+});
+
+test('validate missing name', () => {
+  // @ts-expect-error Bad config
+  const client = azure({
+    publicContainerName: 'pubcon',
+    privateContainerName: 'privcon'
+  });
   expect(client.isValid()).toBe(false);
 });
 
