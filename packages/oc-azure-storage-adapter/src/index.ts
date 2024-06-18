@@ -37,13 +37,17 @@ async function streamToBuffer(readableStream: NodeJS.ReadableStream) {
 export interface AzureConfig extends StorageAdapterBaseConfig {
   publicContainerName: string;
   privateContainerName: string;
-  accountName?: string;
+  accountName: string;
   accountKey?: string;
 }
 
 export default function azureAdapter(conf: AzureConfig): StorageAdapter {
   const isValid = () => {
-    if (!conf.publicContainerName || !conf.privateContainerName) {
+    if (
+      !conf.publicContainerName ||
+      !conf.privateContainerName ||
+      !conf.accountName
+    ) {
       return false;
     }
     return true;
