@@ -30,5 +30,7 @@ export interface StorageAdapter {
     isPrivate: boolean,
     client?: unknown
   ): Promise<unknown>;
+  removeDir(folderPath: string): Promise<unknown>;
+  removeFile(filePath: string, isPrivate: boolean): Promise<unknown>;
   isValid: () => boolean;
 }

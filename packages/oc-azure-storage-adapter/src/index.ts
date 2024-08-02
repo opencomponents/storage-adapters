@@ -1,18 +1,19 @@
 import {
   BlobServiceClient,
+  type ContainerClient,
   StorageSharedKeyCredential,
-  BlockBlobUploadOptions
+  type BlockBlobUploadOptions
 } from '@azure/storage-blob';
 import Cache from 'nice-cache';
 import fs from 'fs-extra';
 import { DefaultAzureCredential } from '@azure/identity';
-import nodeDir, { PathsResult } from 'node-dir';
+import nodeDir, { type PathsResult } from 'node-dir';
 import { promisify } from 'util';
 import {
   getFileInfo,
   strings,
-  StorageAdapter,
-  StorageAdapterBaseConfig
+  type StorageAdapter,
+  type StorageAdapterBaseConfig
 } from 'oc-storage-adapters-utils';
 import path from 'path';
 
@@ -58,27 +59,29 @@ export default function azureAdapter(conf: AzureConfig): StorageAdapter {
     refreshInterval: conf.refreshInterval
   });
 
-  let client: BlobServiceClient | undefined = undefined;
+  let privateClient: ContainerClient | undefined = undefined;
+  let publicClient: ContainerClient | undefined = undefined;
 
   const getClient = () => {
-    if (!client) {
-      client = new BlobServiceClient(
+    if (!privateClient || !publicClient) {
+      const client = new BlobServiceClient(
         `https://${conf.accountName}.blob.core.windows.net`,
         conf.accountName && conf.accountKey
           ? new StorageSharedKeyCredential(conf.accountName, conf.accountKey)
           : new DefaultAzureCredential()
       );
+      publicClient = client.getContainerClient(conf.publicContainerName);
+      privateClient = client.getContainerClient(conf.privateContainerName);
+
+      return { publicClient, privateClient };
     }
-    return client;
+    return { publicClient, privateClient };
   };
 
   const getFile = async (filePath: string, force = false) => {
     const getFromAzure = async () => {
-      const client = getClient();
-      const containerClient = client.getContainerClient(
-        conf.privateContainerName
-      );
-      const blobClient = containerClient.getBlobClient(filePath);
+      const { privateClient } = getClient();
+      const blobClient = privateClient.getBlobClient(filePath);
       try {
         const downloadBlockBlobResponse = await blobClient.download();
         const fileContent = (
@@ -136,12 +139,10 @@ export default function azureAdapter(conf: AzureConfig): StorageAdapter {
         ? dir
         : `${dir}/`;
 
-    const containerClient = getClient().getContainerClient(
-      conf.privateContainerName
-    );
+    const { privateClient } = getClient();
     const subDirectories = [];
 
-    for await (const item of containerClient.listBlobsByHierarchy('/', {
+    for await (const item of privateClient.listBlobsByHierarchy('/', {
       prefix: normalisedPath
     })) {
       if (item.kind === 'prefix') {
@@ -160,7 +161,6 @@ export default function azureAdapter(conf: AzureConfig): StorageAdapter {
     const paths = await getPaths(dirInput);
     const packageJsonFile = path.join(dirInput, 'package.json');
     const files = paths.files.filter(file => file !== packageJsonFile);
-    const client = getClient();
 
     const filesResults = await Promise.all(
       files.map((file: string) => {
@@ -173,8 +173,7 @@ export default function azureAdapter(conf: AzureConfig): StorageAdapter {
         return putFile(
           file,
           url,
-          privateFilePatterns.some(r => r.test(relativeFile)),
-          client
+          privateFilePatterns.some(r => r.test(relativeFile))
         );
       })
     );
@@ -183,8 +182,7 @@ export default function azureAdapter(conf: AzureConfig): StorageAdapter {
     const packageJsonFileResult = await putFile(
       packageJsonFile,
       `${dirOutput}/package.json`.replace(/\\/g, '/'),
-      false,
-      client
+      false
     );
 
     return [...filesResults, packageJsonFileResult];
@@ -193,15 +191,14 @@ export default function azureAdapter(conf: AzureConfig): StorageAdapter {
   const putFileContent = async (
     fileContent: string | fs.ReadStream,
     fileName: string,
-    isPrivate: boolean,
-    client: BlobServiceClient
+    isPrivate: boolean
   ) => {
     const content =
       typeof fileContent === 'string'
         ? Buffer.from(fileContent)
         : await streamToBuffer(fileContent);
 
-    const uploadToAzureContainer = (containerName: string) => {
+    const uploadToAzureContainer = (client: ContainerClient) => {
       const fileInfo = getFileInfo(fileName);
       const blobHTTPHeaders: BlockBlobUploadOptions['blobHTTPHeaders'] = {
         blobCacheControl: 'public, max-age=31556926'
@@ -214,30 +211,57 @@ export default function azureAdapter(conf: AzureConfig): StorageAdapter {
       if (fileInfo.gzip) {
         blobHTTPHeaders.blobContentEncoding = 'gzip';
       }
-      const localClient = client ? client : getClient();
-      const containerClient = localClient.getContainerClient(containerName);
-      const blockBlobClient = containerClient.getBlockBlobClient(fileName);
+      const blockBlobClient = client.getBlockBlobClient(fileName);
 
       return blockBlobClient.uploadData(content, {
         blobHTTPHeaders
       });
     };
 
-    let result = await uploadToAzureContainer(conf.privateContainerName);
+    const { publicClient, privateClient } = getClient();
+    let result = await uploadToAzureContainer(privateClient);
     if (!isPrivate) {
-      result = await uploadToAzureContainer(conf.publicContainerName);
+      result = await uploadToAzureContainer(publicClient);
     }
     return result;
   };
 
-  const putFile = (
-    filePath: string,
-    fileName: string,
-    isPrivate: boolean,
-    client: BlobServiceClient
-  ) => {
+  const putFile = (filePath: string, fileName: string, isPrivate: boolean) => {
     const stream = fs.createReadStream(filePath);
-    return putFileContent(stream, fileName, isPrivate, client);
+    return putFileContent(stream, fileName, isPrivate);
+  };
+
+  const removeDir = async (dir: string) => {
+    const removeFromContainer = async (isPrivate: boolean) => {
+      const { publicClient, privateClient } = getClient();
+      const client = isPrivate ? privateClient : publicClient;
+      const files: string[] = [];
+      const normalisedPath =
+        dir.lastIndexOf('/') === dir.length - 1 && dir.length > 0
+          ? dir
+          : `${dir}/`;
+
+      for await (const blob of client.listBlobsFlat({
+        prefix: normalisedPath
+      })) {
+        files.push(blob.name);
+      }
+
+      return Promise.all(files.map(file => removeFile(file, isPrivate)));
+    };
+
+    return Promise.all([removeFromContainer(true), removeFromContainer(false)]);
+  };
+
+  const removeFile = async (filePath: string, isPrivate: boolean) => {
+    const { publicClient, privateClient } = getClient();
+    if (!isPrivate) {
+      const blockBlobClient = publicClient.getBlockBlobClient(filePath);
+      await blockBlobClient.delete();
+    }
+
+    const blockBlobClient = privateClient.getBlockBlobClient(filePath);
+    return blockBlobClient.delete();
   };
 
   return {
@@ -249,6 +273,8 @@ export default function azureAdapter(conf: AzureConfig): StorageAdapter {
     putDir,
     putFile,
     putFileContent,
+    removeFile,
+    removeDir,
     adapterType: 'azure-blob-storage',
     isValid
   };
