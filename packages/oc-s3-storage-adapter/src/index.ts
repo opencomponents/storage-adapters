@@ -1,11 +1,11 @@
-import { S3, S3ClientConfig } from '@aws-sdk/client-s3';
+import { S3, type S3ClientConfig } from '@aws-sdk/client-s3';
 import {
   NodeHttpHandler,
-  NodeHttpHandlerOptions
+  type NodeHttpHandlerOptions
 } from '@aws-sdk/node-http-handler';
 import Cache from 'nice-cache';
 import fs from 'fs-extra';
-import nodeDir, { PathsResult } from 'node-dir';
+import nodeDir, { type PathsResult } from 'node-dir';
 import _ from 'lodash';
 import { promisify } from 'util';
 
@@ -13,8 +13,8 @@ import {
   getFileInfo,
   getNextYear,
   strings,
-  StorageAdapter,
-  StorageAdapterBaseConfig
+  type StorageAdapter,
+  type StorageAdapterBaseConfig
 } from 'oc-storage-adapters-utils';
 import path from 'path';
 
@@ -27,8 +27,8 @@ const getPaths: (path: string) => Promise<PathsResult> = promisify(
 
 type RequireAllOrNone<ObjectType, KeysType extends keyof ObjectType = never> = (
   | Required<Pick<ObjectType, KeysType>> // Require all of the given keys.
-  | Partial<Record<KeysType, never>>
-) & // Require none of the given keys.
+  | Partial<Record<KeysType, never>> // Require none of the given keys.
+) &
   Omit<ObjectType, KeysType>; // The rest of the keys.
 
 export type S3Config = StorageAdapterBaseConfig &
@@ -106,7 +106,7 @@ export default function s3Adapter(conf: S3Config): StorageAdapter {
         endpoint: conf.endpoint,
         region,
         forcePathStyle: s3ForcePathStyle
-      }
+      };
       if (accessKeyId && secretAccessKey) {
         configOpts.credentials = {
           accessKeyId,
@@ -181,7 +181,7 @@ export default function s3Adapter(conf: S3Config): StorageAdapter {
       Delimiter: '/'
     });
 
-    if (data.CommonPrefixes!.length === 0) {
+    if (data.CommonPrefixes?.length === 0) {
       throw {
         code: strings.errors.STORAGE.DIR_NOT_FOUND_CODE,
         msg: strings.errors.STORAGE.DIR_NOT_FOUND(dir)
@@ -253,10 +253,46 @@ export default function s3Adapter(conf: S3Config): StorageAdapter {
     });
   };
 
-  const putFile = (filePath: string, fileName: string, isPrivate: boolean, client: S3) => {
+  const putFile = (
+    filePath: string,
+    fileName: string,
+    isPrivate: boolean,
+    client: S3
+  ) => {
     const stream = fs.createReadStream(filePath);
 
     return putFileContent(stream, fileName, isPrivate, client);
+  };
+
+  const removeDir = async (dir: string) => {
+    const removeFromContainer = async () => {
+      const normalisedPath =
+        dir.lastIndexOf('/') === dir.length - 1 && dir.length > 0
+          ? dir
+          : `${dir}/`;
+
+      const data = await getClient().listObjects({
+        Bucket: bucket,
+        Prefix: normalisedPath
+      });
+      const files =
+        data.Contents?.map(content => content.Key).filter(
+          key => key != undefined
+        ) ?? [];
+
+      return Promise.all(files.map(file => removeFile(file)));
+    };
+
+    return removeFromContainer();
+  };
+
+  const removeFile = async (filePath: string) => {
+    const client = getClient();
+
+    await client.deleteObject({
+      Bucket: bucket,
+      Key: filePath
+    });
   };
 
   return {
@@ -268,6 +304,8 @@ export default function s3Adapter(conf: S3Config): StorageAdapter {
     putDir,
     putFile,
     putFileContent,
+    removeFile,
+    removeDir,
     adapterType: 's3',
     isValid
   };

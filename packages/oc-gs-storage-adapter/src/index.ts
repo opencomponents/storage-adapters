@@ -1,13 +1,13 @@
 import Cache from 'nice-cache';
 import fs from 'fs-extra';
-import nodeDir, { PathsResult } from 'node-dir';
-import { Storage, UploadOptions } from '@google-cloud/storage';
+import nodeDir, { type PathsResult } from 'node-dir';
+import { Storage, type UploadOptions } from '@google-cloud/storage';
 import tmp from 'tmp';
 import {
   getFileInfo,
   strings,
-  StorageAdapter,
-  StorageAdapterBaseConfig
+  type StorageAdapter,
+  type StorageAdapterBaseConfig
 } from 'oc-storage-adapters-utils';
 import { promisify } from 'util';
 import path from 'path';
@@ -241,6 +241,29 @@ export default function gsAdapter(conf: GsConfig): StorageAdapter {
     }
   };
 
+  const removeDir = async (dir: string) => {
+    const removeFromContainer = async () => {
+      const normalisedPath =
+        dir.lastIndexOf('/') === dir.length - 1 && dir.length > 0
+          ? dir
+          : `${dir}/`;
+
+      const [files] = await getClient()
+        .bucket(bucketName)
+        .getFiles({ prefix: normalisedPath });
+
+      return Promise.all(files.map(file => file.delete()));
+    };
+
+    return removeFromContainer();
+  };
+
+  const removeFile = async (filePath: string) => {
+    const client = getClient();
+
+    return client.bucket(bucketName).file(filePath).delete();
+  };
+
   return {
     getFile,
     getJson,
@@ -250,6 +273,8 @@ export default function gsAdapter(conf: GsConfig): StorageAdapter {
     putDir,
     putFile,
     putFileContent,
+    removeDir,
+    removeFile,
     adapterType: 'gs',
     isValid
   };
