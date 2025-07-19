@@ -1,6 +1,6 @@
 {
   "name": "oc-gs-storage-adapter",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "Google storage adapter for OC",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -36,7 +36,7 @@
     "lodash": "^4.17.4",
     "nice-cache": "^0.0.5",
     "node-dir": "^0.1.17",
-    "oc-storage-adapters-utils": "2.1.0",
+    "oc-storage-adapters-utils": "2.1.2",
     "tmp": "0.1.0"
   },
   "devDependencies": {
