@@ -34,15 +34,25 @@ type RequireAllOrNone<ObjectType, KeysType extends keyof ObjectType = never> = (
 export type S3Config = StorageAdapterBaseConfig &
   RequireAllOrNone<
     {
+      /** Name of the AWS S3 bucket where components will be stored. */
       bucket: string;
+      /** AWS region where the bucket is located (e.g. "eu-west-1"). */
       region: string;
+      /** AWS access key ID. Must be provided together with `secret`, or both omitted to use IAM role credentials. */
       key?: string;
+      /** AWS secret access key. Must be provided together with `key`, or both omitted to use IAM role credentials. */
       secret?: string;
+      /** When `false`, disables SSL for S3 requests. Defaults to `true`. Optional. */
       sslEnabled?: boolean;
+      /** Force path-style URLs instead of virtual host style. Optional. */
       s3ForcePathStyle?: boolean;
+      /** Socket timeout (in milliseconds) for S3 requests. Optional. */
       timeout?: number;
+      /** Custom HTTP/HTTPS agent to use (e.g. proxy agent). Optional. */
       agentProxy?: httpAgent | httpsAgent;
+      /** Custom S3 endpoint (useful for S3-compatible services or local testing). Optional. */
       endpoint?: string;
+      /** When `true`, enables AWS SDK debug logging to the console. Optional. */
       debug?: boolean;
     },
     'key' | 'secret'

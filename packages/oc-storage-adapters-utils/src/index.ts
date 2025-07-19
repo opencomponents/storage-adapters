@@ -4,9 +4,28 @@ export { getNextYear } from './get-next-year';
 export * as strings from './strings';
 
 export interface StorageAdapterBaseConfig {
+  /**
+   * Local folder that contains the compiled OC components ready to be uploaded
+   * to the storage provider.
+   */
   componentsDir: string;
+
+  /**
+   * Public CDN prefix where components will be served from (for example,
+   * "https://cdn.myorg.com/"). Adapters use this to build the URLs returned by
+   * `getUrl()`.
+   */
   path: string;
+
+  /**
+   * When set to `true`, enables verbose logging during adapter operations such
+   * as upload or removal. Optional.
+   */
   verbosity?: boolean;
+
+  /**
+   * Time-to-live for the in-memory cache, in milliseconds. Optional.
+   */
   refreshInterval?: number;
 }
 

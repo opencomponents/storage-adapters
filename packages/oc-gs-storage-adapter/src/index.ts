@@ -17,8 +17,18 @@ const getPaths: (path: string) => Promise<PathsResult> = promisify(
 );
 
 export interface GsConfig extends StorageAdapterBaseConfig {
+  /**
+   * Name of the Google Cloud Storage bucket that will host the component files.
+   */
   bucket: string;
+  /**
+   * Google Cloud project ID that owns the bucket.
+   */
   projectId: string;
+  /**
+   * Cache-Control max-age (in seconds) to apply to public files. If not set, defaults to 3600.
+   * Optional.
+   */
   maxAge?: boolean;
 }
 

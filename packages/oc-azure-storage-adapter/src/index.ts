@@ -36,9 +36,27 @@ async function streamToBuffer(readableStream: NodeJS.ReadableStream) {
 }
 
 export interface AzureConfig extends StorageAdapterBaseConfig {
+  /**
+   * Name of the **public** Azure Blob container that will host the static,
+   * publicly accessible files of a component (css, js, templates, etc.).
+   */
   publicContainerName: string;
+
+  /**
+   * Name of the **private** Azure Blob container that will host files that must
+   * not be publicly accessible (e.g. `server.js`, dot-files, etc.).
+   */
   privateContainerName: string;
+
+  /**
+   * Azure Storage account name that owns the containers.
+   */
   accountName: string;
+
+  /**
+   * Access key for the storage account. If **omitted**, the adapter falls back
+   * to Azure's default credential chain (`DefaultAzureCredential`). Optional.
+   */
   accountKey?: string;
 }
 
