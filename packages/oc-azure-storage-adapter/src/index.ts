@@ -3,7 +3,7 @@ import {
   type ContainerClient,
   StorageSharedKeyCredential,
   type BlockBlobUploadOptions,
-  AnonymousCredential
+  type AnonymousCredential
 } from '@azure/storage-blob';
 import Cache from 'nice-cache';
 import fs from 'fs-extra';
