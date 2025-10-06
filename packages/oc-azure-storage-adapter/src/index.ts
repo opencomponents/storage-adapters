@@ -2,11 +2,12 @@ import {
   BlobServiceClient,
   type ContainerClient,
   StorageSharedKeyCredential,
-  type BlockBlobUploadOptions
+  type BlockBlobUploadOptions,
+  AnonymousCredential
 } from '@azure/storage-blob';
 import Cache from 'nice-cache';
 import fs from 'fs-extra';
-import { DefaultAzureCredential } from '@azure/identity';
+import { DefaultAzureCredential, TokenCredential } from '@azure/identity';
 import nodeDir, { type PathsResult } from 'node-dir';
 import { promisify } from 'util';
 import {
@@ -58,6 +59,11 @@ export interface AzureConfig extends StorageAdapterBaseConfig {
    * to Azure's default credential chain (`DefaultAzureCredential`). Optional.
    */
   accountKey?: string;
+
+  credential?:
+    | StorageSharedKeyCredential
+    | AnonymousCredential
+    | TokenCredential;
 }
 
 export default function azureAdapter(conf: AzureConfig): StorageAdapter {
@@ -86,7 +92,9 @@ export default function azureAdapter(conf: AzureConfig): StorageAdapter {
         `https://${conf.accountName}.blob.core.windows.net`,
         conf.accountName && conf.accountKey
           ? new StorageSharedKeyCredential(conf.accountName, conf.accountKey)
-          : new DefaultAzureCredential()
+          : conf.credential
+            ? conf.credential
+            : new DefaultAzureCredential()
       );
       publicClient = client.getContainerClient(conf.publicContainerName);
       privateClient = client.getContainerClient(conf.privateContainerName);
