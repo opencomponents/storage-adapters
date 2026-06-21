@@ -118,19 +118,41 @@ export default function gsAdapter(conf: GsConfig): StorageAdapter {
         ? dir
         : dir + '/';
 
-    const options = {
-      prefix: normalisedPath
-    };
-
     try {
-      const results = await getClient().bucket(bucketName).getFiles(options);
+      const collected: { name: string }[] = [];
+      let pageToken: string | undefined;
 
-      const files = results[0];
-      if (files.length === 0) {
+      do {
+        const options: {
+          prefix: string;
+          autoPaginate: false;
+          pageToken?: string;
+        } = {
+          prefix: normalisedPath,
+          autoPaginate: false
+        };
+        if (pageToken) {
+          options.pageToken = pageToken;
+        }
+
+        const results = await getClient()
+          .bucket(bucketName)
+          .getFiles(options);
+        const files = results[0] ?? [];
+        const nextQuery = results[1] as { pageToken?: string } | undefined;
+
+        for (const file of files) {
+          collected.push(file);
+        }
+
+        pageToken = nextQuery?.pageToken;
+      } while (pageToken);
+
+      if (collected.length === 0) {
         throw 'no files';
       }
 
-      const result = files
+      const result = collected
         //remove prefix
         .map(file => file.name.replace(normalisedPath, ''))
         // only get files that aren't in root directory
@@ -258,11 +280,36 @@ export default function gsAdapter(conf: GsConfig): StorageAdapter {
           ? dir
           : `${dir}/`;
 
-      const [files] = await getClient()
-        .bucket(bucketName)
-        .getFiles({ prefix: normalisedPath });
+      const collected: { delete: () => Promise<unknown> }[] = [];
+      let pageToken: string | undefined;
 
-      return Promise.all(files.map(file => file.delete()));
+      do {
+        const options: {
+          prefix: string;
+          autoPaginate: false;
+          pageToken?: string;
+        } = {
+          prefix: normalisedPath,
+          autoPaginate: false
+        };
+        if (pageToken) {
+          options.pageToken = pageToken;
+        }
+
+        const results = await getClient()
+          .bucket(bucketName)
+          .getFiles(options);
+        const files = results[0] ?? [];
+        const nextQuery = results[1] as { pageToken?: string } | undefined;
+
+        for (const file of files) {
+          collected.push(file as { delete: () => Promise<unknown> });
+        }
+
+        pageToken = nextQuery?.pageToken;
+      } while (pageToken);
+
+      return Promise.all(collected.map(file => file.delete()));
     };
 
     return removeFromContainer();

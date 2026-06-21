@@ -185,24 +185,37 @@ export default function s3Adapter(conf: S3Config): StorageAdapter {
         ? dir
         : `${dir}/`;
 
-    const data = await getClient().listObjects({
-      Bucket: bucket,
-      Prefix: normalisedPath,
-      Delimiter: '/'
-    });
+    const prefixes: string[] = [];
+    let marker: string | undefined;
 
-    if (data.CommonPrefixes?.length === 0) {
+    do {
+      const data = await getClient().listObjects({
+        Bucket: bucket,
+        Prefix: normalisedPath,
+        Delimiter: '/',
+        Marker: marker
+      });
+
+      for (const commonPrefix of data.CommonPrefixes ?? []) {
+        if (commonPrefix.Prefix) {
+          prefixes.push(commonPrefix.Prefix);
+        }
+      }
+
+      // S3 returns NextMarker when a Delimiter is set and the list is truncated.
+      // Guard against an infinite loop if S3 ever omits it while truncated.
+      marker = data.IsTruncated && data.NextMarker ? data.NextMarker : undefined;
+    } while (marker);
+
+    if (prefixes.length === 0) {
       throw {
         code: strings.errors.STORAGE.DIR_NOT_FOUND_CODE,
         msg: strings.errors.STORAGE.DIR_NOT_FOUND(dir)
       };
     }
 
-    const result = _.map(data.CommonPrefixes, commonPrefix =>
-      commonPrefix.Prefix!.substr(
-        normalisedPath.length,
-        commonPrefix.Prefix!.length - normalisedPath.length - 1
-      )
+    const result = _.map(prefixes, prefix =>
+      prefix.substr(normalisedPath.length, prefix.length - normalisedPath.length - 1)
     );
 
     return result;
@@ -281,14 +294,32 @@ export default function s3Adapter(conf: S3Config): StorageAdapter {
           ? dir
           : `${dir}/`;
 
-      const data = await getClient().listObjects({
-        Bucket: bucket,
-        Prefix: normalisedPath
-      });
-      const files =
-        data.Contents?.map(content => content.Key).filter(
-          key => key != undefined
-        ) ?? [];
+      const files: string[] = [];
+      let marker: string | undefined;
+
+      do {
+        const data = await getClient().listObjects({
+          Bucket: bucket,
+          Prefix: normalisedPath,
+          Marker: marker
+        });
+
+        for (const content of data.Contents ?? []) {
+          if (content.Key != null) {
+            files.push(content.Key);
+          }
+        }
+
+        // Without a Delimiter, S3 does not return NextMarker; per the v1
+        // ListObjects spec, use the last Key in Contents as the next Marker.
+        if (data.IsTruncated && data.NextMarker) {
+          marker = data.NextMarker;
+        } else if (data.IsTruncated && data.Contents && data.Contents.length > 0) {
+          marker = data.Contents[data.Contents.length - 1].Key;
+        } else {
+          marker = undefined;
+        }
+      } while (marker);
 
       return Promise.all(files.map(file => removeFile(file)));
     };

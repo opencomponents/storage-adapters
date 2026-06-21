@@ -56,20 +56,66 @@ const _S3 = class {
     });
 
     this.listObjects = jest.fn(val => {
-      const CommonPrefixes =
-        val.Bucket === 'my-empty-bucket'
-          ? []
-          : [
-              {
-                Prefix: 'components/image/1.0.0/'
-              },
-              {
-                Prefix: 'components/image/1.0.1/'
-              }
-            ];
+      if (val.Bucket === 'my-empty-bucket') {
+        return Promise.resolve({ CommonPrefixes: [], Contents: [] });
+      }
+
+      if (val.Bucket === 'paginated-bucket') {
+        const isDelimited = val.Delimiter === '/';
+
+        if (isDelimited) {
+          // listSubDirectories path: S3 returns NextMarker when Delimiter is set.
+          if (!val.Marker) {
+            return Promise.resolve({
+              CommonPrefixes: [
+                { Prefix: 'components/a/1.0.0/' },
+                { Prefix: 'components/a/1.0.1/' }
+              ],
+              IsTruncated: true,
+              NextMarker: 'marker-2'
+            });
+          }
+
+          return Promise.resolve({
+            CommonPrefixes: [{ Prefix: 'components/a/2.0.0/' }],
+            IsTruncated: false
+          });
+        }
+
+        // removeDir path: no Delimiter, so S3 v1 does NOT return NextMarker;
+        // the client must use the last Key in Contents as the next Marker.
+        if (!val.Marker) {
+          return Promise.resolve({
+            Contents: [
+              { Key: 'components/a/1.0.0/file.js' },
+              { Key: 'components/a/1.0.0/package.json' }
+            ],
+            IsTruncated: true
+          });
+        }
+
+        return Promise.resolve({
+          Contents: [
+            { Key: 'components/a/2.0.0/file.js' },
+            { Key: 'components/a/2.0.0/package.json' }
+          ],
+          IsTruncated: false
+        });
+      }
+
+      const CommonPrefixes = [
+        {
+          Prefix: 'components/image/1.0.0/'
+        },
+        {
+          Prefix: 'components/image/1.0.1/'
+        }
+      ];
 
       return Promise.resolve({ CommonPrefixes });
     });
+
+    this.deleteObject = jest.fn(() => Promise.resolve({}));
 
     this.putObject = jest.fn(data => {
       if (data && data.Key && data.Key.indexOf('error') >= 0) {
