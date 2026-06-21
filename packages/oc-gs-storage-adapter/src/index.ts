@@ -123,6 +123,7 @@ export default function gsAdapter(conf: GsConfig): StorageAdapter {
       let pageToken: string | undefined;
 
       do {
+        const requestPageToken = pageToken;
         const options: {
           prefix: string;
           autoPaginate: false;
@@ -131,8 +132,8 @@ export default function gsAdapter(conf: GsConfig): StorageAdapter {
           prefix: normalisedPath,
           autoPaginate: false
         };
-        if (pageToken) {
-          options.pageToken = pageToken;
+        if (requestPageToken) {
+          options.pageToken = requestPageToken;
         }
 
         const results = await getClient()
@@ -145,7 +146,13 @@ export default function gsAdapter(conf: GsConfig): StorageAdapter {
           collected.push(file);
         }
 
-        pageToken = nextQuery?.pageToken;
+        const nextPageToken = nextQuery?.pageToken;
+        if (nextPageToken && nextPageToken === requestPageToken) {
+          throw new Error(
+            'GCS getFiles returned an unchanged pageToken; aborting to avoid an infinite loop'
+          );
+        }
+        pageToken = nextPageToken;
       } while (pageToken);
 
       if (collected.length === 0) {
