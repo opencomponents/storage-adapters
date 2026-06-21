@@ -188,7 +188,7 @@ export default function s3Adapter(conf: S3Config): StorageAdapter {
     const prefixes: string[] = [];
     let marker: string | undefined;
 
-    do {
+    while (true) {
       const data = await getClient().listObjects({
         Bucket: bucket,
         Prefix: normalisedPath,
@@ -202,10 +202,21 @@ export default function s3Adapter(conf: S3Config): StorageAdapter {
         }
       }
 
-      // S3 returns NextMarker when a Delimiter is set and the list is truncated.
-      // Guard against an infinite loop if S3 ever omits it while truncated.
-      marker = data.IsTruncated && data.NextMarker ? data.NextMarker : undefined;
-    } while (marker);
+      if (!data.IsTruncated) {
+        break;
+      }
+
+      const nextMarker =
+        data.NextMarker ??
+        data.Contents?.[data.Contents.length - 1]?.Key ??
+        data.CommonPrefixes?.[data.CommonPrefixes.length - 1]?.Prefix;
+
+      if (!nextMarker || nextMarker === marker) {
+        throw new Error('S3 listObjects returned no (or unchanged) pagination marker while truncated');
+      }
+
+      marker = nextMarker;
+    }
 
     if (prefixes.length === 0) {
       throw {
