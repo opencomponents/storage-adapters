@@ -200,6 +200,26 @@ test('test getJson force mode', async () => {
   });
 });
 
+test('listSubDirectories follows continuation tokens across pages', async () => {
+  const client = s3({ ...validOptions, bucket: 'paginated-bucket' });
+
+  const data = await client.listSubDirectories('components/a');
+
+  // Page 1 returns 1.0.0 and 1.0.1, page 2 returns 2.0.0. All three are
+  // only returned if the adapter follows NextMarker across pages.
+  expect(data).toEqual(['1.0.0', '1.0.1', '2.0.0']);
+});
+
+test('removeDir follows continuation tokens across pages and deletes all keys', async () => {
+  const client = s3({ ...validOptions, bucket: 'paginated-bucket' });
+
+  const result = (await client.removeDir('components/a')) as unknown[];
+
+  // Page 1 lists two keys, page 2 lists two keys. Four deletes only happen
+  // if the adapter paginates using the last Key as the next Marker.
+  expect(result).toHaveLength(4);
+});
+
 test('test getUrl ', () => {
   const client = s3(validOptions);
   expect(client.getUrl('test', '1.0.0', 'test.js')).toBe('/test/1.0.0/test.js');

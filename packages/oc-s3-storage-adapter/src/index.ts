@@ -185,24 +185,48 @@ export default function s3Adapter(conf: S3Config): StorageAdapter {
         ? dir
         : `${dir}/`;
 
-    const data = await getClient().listObjects({
-      Bucket: bucket,
-      Prefix: normalisedPath,
-      Delimiter: '/'
-    });
+    const prefixes: string[] = [];
+    let marker: string | undefined;
 
-    if (data.CommonPrefixes?.length === 0) {
+    while (true) {
+      const data = await getClient().listObjects({
+        Bucket: bucket,
+        Prefix: normalisedPath,
+        Delimiter: '/',
+        Marker: marker
+      });
+
+      for (const commonPrefix of data.CommonPrefixes ?? []) {
+        if (commonPrefix.Prefix) {
+          prefixes.push(commonPrefix.Prefix);
+        }
+      }
+
+      if (!data.IsTruncated) {
+        break;
+      }
+
+      const nextMarker =
+        data.NextMarker ??
+        data.Contents?.[data.Contents.length - 1]?.Key ??
+        data.CommonPrefixes?.[data.CommonPrefixes.length - 1]?.Prefix;
+
+      if (!nextMarker || nextMarker === marker) {
+        throw new Error('S3 listObjects returned no (or unchanged) pagination marker while truncated');
+      }
+
+      marker = nextMarker;
+    }
+
+    if (prefixes.length === 0) {
       throw {
         code: strings.errors.STORAGE.DIR_NOT_FOUND_CODE,
         msg: strings.errors.STORAGE.DIR_NOT_FOUND(dir)
       };
     }
 
-    const result = _.map(data.CommonPrefixes, commonPrefix =>
-      commonPrefix.Prefix!.substr(
-        normalisedPath.length,
-        commonPrefix.Prefix!.length - normalisedPath.length - 1
-      )
+    const result = _.map(prefixes, prefix =>
+      prefix.substr(normalisedPath.length, prefix.length - normalisedPath.length - 1)
     );
 
     return result;
@@ -281,14 +305,35 @@ export default function s3Adapter(conf: S3Config): StorageAdapter {
           ? dir
           : `${dir}/`;
 
-      const data = await getClient().listObjects({
-        Bucket: bucket,
-        Prefix: normalisedPath
-      });
-      const files =
-        data.Contents?.map(content => content.Key).filter(
-          key => key != undefined
-        ) ?? [];
+      const files: string[] = [];
+      let marker: string | undefined;
+
+      while (true) {
+        const data = await getClient().listObjects({
+          Bucket: bucket,
+          Prefix: normalisedPath,
+          Marker: marker
+        });
+
+        for (const content of data.Contents ?? []) {
+          if (content.Key != null) {
+            files.push(content.Key);
+          }
+        }
+
+        if (!data.IsTruncated) {
+          break;
+        }
+
+        const nextMarker =
+          data.NextMarker ?? data.Contents?.[data.Contents.length - 1]?.Key;
+
+        if (!nextMarker || nextMarker === marker) {
+          throw new Error('S3 listObjects returned no (or unchanged) pagination marker while truncated');
+        }
+
+        marker = nextMarker;
+      }
 
       return Promise.all(files.map(file => removeFile(file)));
     };

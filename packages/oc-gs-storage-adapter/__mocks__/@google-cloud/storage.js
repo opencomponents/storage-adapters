@@ -12,32 +12,61 @@ const googleStorage = jest.genMockFromModule('@google-cloud/storage');
 const _Storage = class {
   constructor() {
     this.bucket = jest.fn(bucket => ({
-      getFiles: () => {
-        const files =
-          bucket === 'my-empty-bucket'
-            ? []
-            : [
-                [
-                  {
-                    name: 'components/image/1.0.0/app.js'
-                  },
-                  {
-                    name: 'components/image/1.0.0/server.js'
-                  },
-                  {
-                    name: 'components/image/1.0.0/.env'
-                  },
-                  {
-                    name: 'components/image/1.0.1/new-server.js'
-                  },
-                  {
-                    name: 'components/image/1.0.1/new-.env'
-                  },
-                  {
-                    name: 'components/image/1.0.1/new-app.js'
-                  }
-                ]
-              ];
+      getFiles: (options = {}) => {
+        if (bucket === 'my-empty-bucket') {
+          return Promise.resolve([]);
+        }
+
+        if (bucket === 'paginated-bucket') {
+          const makeFile = name => ({
+            name,
+            delete: jest.fn(() => Promise.resolve())
+          });
+
+          if (!options.pageToken) {
+            return Promise.resolve([
+              [
+                makeFile('components/a/1.0.0/app.js'),
+                makeFile('components/a/1.0.0/server.js')
+              ],
+              { pageToken: 'page-2' }
+            ]);
+          }
+
+          return Promise.resolve([
+            [makeFile('components/a/2.0.0/app.js')],
+            null
+          ]);
+        }
+
+        const files = [
+          [
+            {
+              name: 'components/image/1.0.0/app.js',
+              delete: jest.fn(() => Promise.resolve())
+            },
+            {
+              name: 'components/image/1.0.0/server.js',
+              delete: jest.fn(() => Promise.resolve())
+            },
+            {
+              name: 'components/image/1.0.0/.env',
+              delete: jest.fn(() => Promise.resolve())
+            },
+            {
+              name: 'components/image/1.0.1/new-server.js',
+              delete: jest.fn(() => Promise.resolve())
+            },
+            {
+              name: 'components/image/1.0.1/new-.env',
+              delete: jest.fn(() => Promise.resolve())
+            },
+            {
+              name: 'components/image/1.0.1/new-app.js',
+              delete: jest.fn(() => Promise.resolve())
+            }
+          ]
+        ];
         return Promise.resolve(files);
       },
       upload: (filePath, { destination }) => {

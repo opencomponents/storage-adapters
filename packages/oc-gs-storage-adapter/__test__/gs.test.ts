@@ -185,6 +185,26 @@ test('test getJson force mode', async () => {
   });
 });
 
+test('listSubDirectories follows pageToken across pages', async () => {
+  const client = gs({ ...validOptions, bucket: 'paginated-bucket' });
+
+  const data = await client.listSubDirectories('components/a');
+
+  // Page 1 yields 1.0.0, page 2 yields 2.0.0. Both are only returned if the
+  // adapter follows the nextQuery pageToken across pages.
+  expect(data).toEqual(['1.0.0', '2.0.0']);
+});
+
+test('removeDir follows pageToken across pages and deletes all files', async () => {
+  const client = gs({ ...validOptions, bucket: 'paginated-bucket' });
+
+  const result = (await client.removeDir('components/a')) as unknown[];
+
+  // Page 1 lists two files, page 2 lists one file. Three deletes only happen
+  // if the adapter paginates using the nextQuery pageToken.
+  expect(result).toHaveLength(3);
+});
+
 test('test getUrl ', () => {
   const client = gs(validOptions);
   expect(client.getUrl('test', '1.0.0', 'test.js')).toBe('/test/1.0.0/test.js');
