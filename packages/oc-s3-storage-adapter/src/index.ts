@@ -297,7 +297,7 @@ export default function s3Adapter(conf: S3Config): StorageAdapter {
       const files: string[] = [];
       let marker: string | undefined;
 
-      do {
+      while (true) {
         const data = await getClient().listObjects({
           Bucket: bucket,
           Prefix: normalisedPath,
@@ -310,16 +310,19 @@ export default function s3Adapter(conf: S3Config): StorageAdapter {
           }
         }
 
-        // Without a Delimiter, S3 does not return NextMarker; per the v1
-        // ListObjects spec, use the last Key in Contents as the next Marker.
-        if (data.IsTruncated && data.NextMarker) {
-          marker = data.NextMarker;
-        } else if (data.IsTruncated && data.Contents && data.Contents.length > 0) {
-          marker = data.Contents[data.Contents.length - 1].Key;
-        } else {
-          marker = undefined;
+        if (!data.IsTruncated) {
+          break;
         }
-      } while (marker);
+
+        const nextMarker =
+          data.NextMarker ?? data.Contents?.[data.Contents.length - 1]?.Key;
+
+        if (!nextMarker || nextMarker === marker) {
+          throw new Error('S3 listObjects returned no (or unchanged) pagination marker while truncated');
+        }
+
+        marker = nextMarker;
+      }
 
       return Promise.all(files.map(file => removeFile(file)));
     };
