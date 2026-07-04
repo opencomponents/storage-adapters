@@ -7,7 +7,7 @@ jest.mock('fs-extra', () => {
 
 let mockCachedTxt = 0;
 let mockCachedJson = 0;
-const googleStorage = jest.genMockFromModule('@google-cloud/storage');
+const googleStorage = {};
 
 const _Storage = class {
   constructor() {
